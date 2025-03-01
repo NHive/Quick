@@ -1,0 +1,6 @@
+export { default as Account } from './Account/index.vue'
+export { default as CustomSetting } from './CustomSetting/index.vue'
+export { default as Network } from './Network/index.vue'
+export { default as About } from './About/index.vue'
+export { default as Win } from './Win/index.vue'
+export { default as Sider } from './Sider/index.vue'

@@ -2,7 +2,7 @@
   <div class="container">
     <ul class="controlBox">
       <li class="controlIcon collapse" v-html="icons.collapse"></li>
-      <li class="controlIcon" v-html="icons.fullScreen"></li>
+      <li class="controlIcon" v-html="icons.move"></li>
       <li class="controlIcon" v-html="icons.home"></li>
     </ul>
   </div>
@@ -13,6 +13,7 @@ import { icons } from '@/utils/svg';
 </script>
 <style lang="scss" scoped>
 .container {
+  width: 80px;
   height: 100vh;
   margin: 0;
   background-color: #f0f0f0; /* 设置背景颜色 */
@@ -31,9 +32,10 @@ import { icons } from '@/utils/svg';
     justify-content: center;
     align-items: center;
     background: #fff;
+    box-sizing: border-box;
     width: 40px;
     height: 40px;
-    padding: 4px 4px 6px 4px;
+    padding: 8px;
     border-radius: 50%;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 添加阴影 */
   }
@@ -41,7 +43,7 @@ import { icons } from '@/utils/svg';
     margin-bottom: 12px;
   }
   .collapse{
-    transform: rotate(45deg);
+    padding: 10px;
   }
 }
 </style>

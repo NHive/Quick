@@ -1,1 +1,288 @@
-{}
+{
+  "settings": {
+    "menu": {
+      "userAccount": "用户账号",
+      "generalSettings": "通用设置",
+      "history": "历史记录",
+      "shortcuts": "快捷键配置",
+      "about": "关于软件",
+      "devices": "设备管理",
+      "window": "窗口设置",
+      "network": "网络设置"
+    },
+    "basic": {
+      "title": "基本设置",
+      "theme": "主题设置",
+      "themeAuto": "自动",
+      "themeLight": "亮色",
+      "themeDark": "暗色",
+      "language": "语言",
+      "clipboardMonitor": "开启剪切板监听",
+      "autoInsert": "开启自动插入",
+      "defaultClipboard": "其他设备的剪切板设为默认值",
+      "autoStart": "开机启动",
+      "languageAuto": "跟随系统",
+      "imgFileConvToImg": "解析文件中的图片",
+      "lossyCompressedPicture": "图片压缩保存",
+      "silentStart": "静默启动",
+      "pasteAndTop": "粘贴后移至最前"
+    },
+    "fileSync": {
+      "title": "文件同步设置",
+      "enable": "开启文件同步支持",
+      "sizeLimit": "同步文件大小限制",
+      "keywordFilter": "同步文件关键词过滤",
+      "keywordPlaceholder": "输入关键词并按回车"
+    },
+    "shortcuts": {
+      "global": "全局快捷键",
+      "app": "应用内快捷键",
+      "showMainWindow": "打开剪切板",
+      "preview": "快速预览数据",
+      "paste": "以纯文本插入",
+      "previousPage": "快速翻上一页",
+      "nextPage": "快速翻下一页",
+      "deleteSelected": "删除当前选择",
+      "insertSelected": "插入选中数据",
+      "focusSearch": "聚焦搜索框",
+      "inputPlaceholder": "点击输入快捷键",
+      "duplicateWarning": "{hotkey}快捷键重复！请重新设置",
+      "saveError": "快捷键设置失败，请重试",
+      "registrationError": "注册失败",
+      "saveSuccess": "快捷键设置成功",
+      "requireCombination": "请输入组合键"
+    },
+    "about": {
+      "loading": "加载中...",
+      "loadFailed": "获取版本失败",
+      "description": "一个简单而强大的跨平台剪贴板工具",
+      "copyright": "© 2024 NewbeePaste. 保留所有权利。",
+      "version": "版本",
+      "checkUpdate": "检查更新"
+    },
+    "account": {
+      "title": "账号信息",
+      "nickname": "昵称",
+      "email": "邮箱",
+      "phone": "手机号",
+      "avatar": "头像",
+      "updateAvatar": "更新头像",
+      "deviceName": "设备名称",
+      "verified": "已验证",
+      "loginPrompt": "请登录以管理您的账号",
+      "login": "登录",
+      "preview": "预览",
+      "fetchError": "获取用户信息失败",
+      "invalidImageType": "不支持的图片格式",
+      "imageTooLarge": "图片大小不能超过2MB",
+      "avatarUpdateSuccess": "头像更新成功",
+      "avatarUpdateError": "头像更新失败",
+      "updateSuccess": "更新成功",
+      "updateError": "更新失败",
+      "logout": "退出登录",
+      "logoutSuccess": "退出登录成功",
+      "logoutError": "退出登录失败",
+      "register": "注册",
+      "verify": "二步验证",
+      "completeVerify": "完成验证",
+      "notLoggedIn": "未登录",
+      "memberTips": "点击开通会员享受更多权益",
+      "loginTip": "登录后可免费领取会员体验权益",
+      "versions": "权益说明",
+      "offlineVersion": "离线版",
+      "basicFeatures": "免费版",
+      "premiumVersion": "会员版",
+      "freeVersion": "免费版"
+    },
+    "login": {
+      "welcome": "欢迎回来",
+      "subtitle": "请登录您的账号以继续",
+      "captcha": "验证码登录",
+      "phoneRequired": "请输入手机号",
+      "phonePlaceholder": "手机号(未注册将自动注册)",
+      "captchaRequired": "请输入验证码",
+      "captchaPlaceholder": "请输入验证码",
+      "captchaCountdown": "30s后重试",
+      "sendCaptcha": "发送验证码",
+      "submit": "登录",
+      "password": "账号密码登录",
+      "usernamePlaceholder": "请输入账户或邮箱",
+      "usernameRequired": "请输入账户或邮箱",
+      "passwordPlaceholder": "请输入密码",
+      "passwordRequired": "请输入密码",
+      "passwordMinLength": "密码长度不能少于6位",
+      "loginButton": "登录",
+      "enterName": "请输入用户名",
+      "enterAccount": "请输入邮箱或手机号",
+      "enterPasswordAgin": "请再次输入密码",
+      "sendAgin": "{0}秒后重试",
+      "enterEmail": "请输入邮箱"
+    },
+    "devices": {
+      "title": "设备管理",
+      "online": "在线",
+      "offline": "离线",
+      "logout": "登出",
+      "logoutSuccess": "登出成功",
+      "logoutError": "登出失败",
+      "noDevices": "暂无设备",
+      "currentDevice": "本机",
+      "fetchError": "获取设备列表失败"
+    },
+    "history": {
+      "title": "历史记录管理",
+      "retentionPeriod": "数据保留时间",
+      "customDays": "自定义天数",
+      "forever": "永久保存",
+      "days7": "7天",
+      "days30": "30天",
+      "days90": "90天",
+      "custom": "自定义时间",
+      "totalRecords": "总记录数",
+      "storageUsed": "已用存储",
+      "lastSync": "上次同步",
+      "syncNow": "立即同步",
+      "cleanData": "清理数据",
+      "never": "从未同步",
+      "settingsSaved": "设置保存成功",
+      "saveFailed": "设置保存失败",
+      "syncSuccess": "数据同步成功",
+      "syncFailed": "数据同步失败",
+      "cleanSuccess": "数据清理成功",
+      "cleanFailed": "数据清理失败",
+      "fetchStatsFailed": "获取统计信息失败",
+      "cleanConfirmTitle": "清理历史数据",
+      "cleanConfirmContent": "确定要清理历史数据吗？此操作无法撤销。",
+      "confirm": "确认",
+      "cancel": "取消"
+    }
+  },
+  "clipboard": {
+    "search": {
+      "placeholder": "输入开始搜索...",
+      "online": "在线",
+      "offline": "离线"
+    },
+    "tabs": {
+      "frequently": "常用",
+      "text": "文本",
+      "image": "图片",
+      "file": "文件",
+      "favorite": "收藏"
+    },
+    "content": {
+      "unknownSource": "未知来源",
+      "itemCount": "{count}个项目",
+      "emptyText": "暂无剪贴内容，快去复制试试吧~",
+      "textSize": "{count}个字符",
+      "sizeKB": "{size}KB",
+      "sizeMB": "{size}MB",
+      "sizeGB": "{size}GB",
+      "fileLink": "文件链接"
+    },
+    "confirm": {
+      "delete": {
+        "title": "操作提示",
+        "content": "确定要删除吗？",
+        "ok": "确定",
+        "cancel": "取消"
+      }
+    },
+    "message": {
+      "deleteSuccess": "删除成功",
+      "deleteFailed": "删除失败，请稍后重试",
+      "pasteFailed": "粘贴失败，请重试"
+    }
+  },
+  "time": {
+    "daysAgo": "{days}天前",
+    "hoursAgo": "{hours}小时前",
+    "minutesAgo": "{minutes}分钟前",
+    "justNow": "刚刚"
+  },
+  "tips": {
+    "emailFormatError": "邮箱格式错误，请输入正确邮箱",
+    "phoneFormatError": "手机号格式错误，请输入正确手机号",
+    "diffrentPWD": "两次密码不一致",
+    "dangerousAccount": "系统检测到你的账号存在异常，为了保证您的账号安全，请验证身份。",
+    "sendCaptchaSuccess": "验证码发送成功",
+    "sendCaptchaFail": "验证码发送失败，请稍后重试",
+    "registerSuccess": "注册成功",
+    "registerFail": "注册失败,请稍后重试",
+    "loginSuccess": "登录成功",
+    "loginFail": "登录失败,请稍后重试",
+    "verifySuccess": "验证成功",
+    "verifyFail": "验证失败,请稍后重试",
+    "notUpdated": "当前已是最新版本",
+    "updateNow": "检测到新版本，正在更新软件",
+    "newVersion": "检测到新版本",
+    "confirmUpdateNow": "是否立刻重启并更新应用"
+  },
+  "verify": {
+    "email": "绑定邮箱",
+    "phone": "绑定手机号",
+    "totp": "绑定TOTP",
+    "emailMethod": "邮箱验证",
+    "phoneMethod": "手机号验证",
+    "totpMethod": "TOTP验证",
+    "more": "更多验证方式"
+  },
+  "feature": {
+    "clipboard": "基础剪切板功能",
+    "hotkey": "自定义快捷键设置",
+    "history": "保存历史记录",
+    "membership": "限时会员权益",
+    "sync": "跨设置同步",
+    "label": "标签管理",
+    "dataBackup": "数据备份"
+  },
+  "menu": {
+    "delete": "删除",
+    "detail": "详情",
+    "moveTo": "移动到"
+  },
+  "onboarding": {
+    "skipButton": "跳过指引",
+    "startButton": "开始使用",
+    "loginOrRegister": "立刻登录/注册",
+    "steps": {
+      "step1": {
+        "title": "复制后自动记录",
+        "description": "所有复制的内容都会自动保存，支持文本、图片、文件等多种格式"
+      },
+      "step2": {
+        "title": "通过快捷键打开剪切板",
+        "description": "使用 Alt+V,唤起剪切板"
+      },
+      "step3": {
+        "title": "双击插入",
+        "description": "双击内容即可粘贴"
+      },
+      "step4": {
+        "title": "多设备同步",
+        "description": "登录账号后自动同步所有设备的剪贴板内容"
+      },
+      "step5": {
+        "title": "开始使用",
+        "description": "现在您已经了解了基本功能，开始体验吧！"
+      }
+    }
+  },
+  "communal": {
+    "deviceState": "状态",
+    "refresh": "刷新",
+    "minimize": "窗口最小化",
+    "syncData": "同步历史记录",
+    "hideWin": "关闭窗口",
+    "clipping": "剪切",
+    "unbounded": "无界",
+    "paste": "粘贴",
+    "unlimited": "无限",
+    "slogan1": "无缝同步 多端畅享",
+    "slogan2": "智能整理 标签分类",
+    "slogan3": "尊享20+特权功能",
+    "slogan4": "专属客服 优先响应",
+    "url": "链接",
+    "hotkey": "快捷键"
+  }
+}

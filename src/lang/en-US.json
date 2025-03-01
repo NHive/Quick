@@ -1,1 +1,287 @@
-{}
+{
+  "settings": {
+    "menu": {
+      "userAccount": "User Account",
+      "generalSettings": "General Settings",
+      "history": "History",
+      "shortcuts": "Shortcuts",
+      "about": "About",
+      "devices": "Devices",
+      "window": "Window settings",
+      "network": "Network settings"
+    },
+    "basic": {
+      "title": "Basic Settings",
+      "theme": "Theme",
+      "themeAuto": "Auto",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "language": "Language",
+      "clipboardMonitor": "Enable Clipboard Monitor",
+      "autoInsert": "Enable Auto Insert",
+      "defaultClipboard": "Set Other Device's Clipboard as Default",
+      "autoStart": "Start on Boot",
+      "languageAuto": "System",
+      "imgFileConvToImg": "Parse images in files",
+      "lossyCompressedPicture": "Save compressed images",
+      "silentStart": "Silent Start",
+      "pasteAndTop": "Paste and move to top"
+    },
+    "fileSync": {
+      "title": "File Sync Settings",
+      "enable": "Enable File Sync",
+      "sizeLimit": "File Size Limit",
+      "keywordFilter": "Keyword Filter",
+      "keywordPlaceholder": "Enter keywords and press Enter"
+    },
+    "shortcuts": {
+      "global": "Global Shortcuts",
+      "app": "Application Shortcuts",
+      "showMainWindow": "Open Clipboard",
+      "preview": "Quick Preview",
+      "paste": "Paste as Plain Text",
+      "previousPage": "Previous Page",
+      "nextPage": "Next Page",
+      "deleteSelected": "Delete Selected",
+      "insertSelected": "Insert Selected",
+      "focusSearch": "Focus Search",
+      "inputPlaceholder": "Click to input shortcut",
+      "duplicateWarning": "{hotkey} shortcut is duplicated! Please reset",
+      "saveError": "Failed to save shortcut",
+      "registrationError": "Failed to register",
+      "saveSuccess": "Shortcut saved successfully",
+      "requireCombination": "Please enter a key combination"
+    },
+    "about": {
+      "loading": "Loading...",
+      "loadFailed": "Failed to get version",
+      "description": "A simple yet powerful cross-platform clipboard tool",
+      "copyright": "© 2024 NewbeePaste. All rights reserved.",
+      "version": "Version",
+      "checkUpdate": "Check Update"
+    },
+    "account": {
+      "title": "Account Information",
+      "nickname": "Nickname",
+      "email": "Email",
+      "phone": "Phone",
+      "avatar": "Avatar",
+      "updateAvatar": "Update Avatar",
+      "deviceName": "Device Name",
+      "verified": "Verified",
+      "loginPrompt": "Please sign in to manage your account",
+      "login": "Sign In",
+      "preview": "Preview",
+      "fetchError": "Failed to fetch user info",
+      "invalidImageType": "Invalid image type",
+      "imageTooLarge": "Image must be smaller than 2MB",
+      "avatarUpdateSuccess": "Avatar updated successfully",
+      "avatarUpdateError": "Failed to update avatar",
+      "updateSuccess": "Updated successfully",
+      "updateError": "Update failed",
+      "logout": "Sign Out",
+      "logoutSuccess": "Signed out successfully",
+      "logoutError": "Failed to sign out",
+      "register": "Register",
+      "completeVerify": "Complete verification",
+      "verify": "2-step verification",
+      "notLoggedIn": "Not logged in",
+      "memberTips": "Click to activate membership to enjoy more benefits",
+      "loginTip": "After logging in, you can receive the membership experience benefits for free",
+      "versions": "Description of benefits",
+      "offlineVersion": "Offline Version",
+      "basicFeatures": "Free version",
+      "premiumVersion": "Premium Version",
+      "freeVersion": "Free Version"
+    },
+    "login": {
+      "welcome": "Welcome Back",
+      "subtitle": "Please sign in to continue",
+      "captcha": "Sign in with Verification Code",
+      "phoneRequired": "Please enter your phone number",
+      "phonePlaceholder": "Phone number (will auto-register if new)",
+      "captchaRequired": "Please enter verification code",
+      "captchaPlaceholder": "Enter verification code",
+      "captchaCountdown": "Try again in 30s",
+      "sendCaptcha": "Send Code",
+      "submit": "Sign In",
+      "password": "Sign in with Password",
+      "usernamePlaceholder": "Enter username or email",
+      "usernameRequired": "Please enter username or email",
+      "passwordPlaceholder": "Enter password",
+      "passwordRequired": "Please enter password",
+      "passwordMinLength": "Password must be at least 6 characters",
+      "loginButton": "Sign In",
+      "enterName": "Please enter username",
+      "enterAccount": "Please enter email",
+      "enterPasswordAgin": "Please enter password again",
+      "sendAgin": "Try again in {0}s",
+      "enterEmail": "Please enter your email address"
+    },
+    "devices": {
+      "title": "Device Management",
+      "online": "Online",
+      "offline": "Offline",
+      "logout": "Logout",
+      "logoutSuccess": "Device logged out successfully",
+      "logoutError": "Failed to logout device",
+      "noDevices": "No devices found",
+      "currentDevice": "Current Device",
+      "fetchError": "Failed to fetch devices"
+    },
+    "history": {
+      "title": "History Management",
+      "retentionPeriod": "Data Retention Period",
+      "customDays": "Custom Days",
+      "forever": "Keep Forever",
+      "days7": "7 Days",
+      "days30": "30 Days",
+      "days90": "90 Days",
+      "custom": "Custom Period",
+      "totalRecords": "Total Records",
+      "storageUsed": "Storage Used",
+      "lastSync": "Last Sync",
+      "syncNow": "Sync Now",
+      "cleanData": "Clean Data",
+      "never": "Never",
+      "settingsSaved": "Settings saved successfully",
+      "saveFailed": "Failed to save settings",
+      "syncSuccess": "Data synced successfully",
+      "syncFailed": "Failed to sync data",
+      "cleanSuccess": "Data cleaned successfully",
+      "cleanFailed": "Failed to clean data",
+      "fetchStatsFailed": "Failed to fetch statistics",
+      "cleanConfirmTitle": "Clean History Data",
+      "cleanConfirmContent": "Are you sure you want to clean the history data? This action cannot be undone.",
+      "confirm": "Confirm",
+      "cancel": "Cancel"
+    }
+  },
+  "clipboard": {
+    "search": {
+      "placeholder": "Type to search...",
+      "online": "Online",
+      "offline": "Offline"
+    },
+    "tabs": {
+      "frequently": "Recent",
+      "text": "Text",
+      "image": "Image",
+      "file": "File",
+      "favorite": "Saved"
+    },
+    "content": {
+      "unknownSource": "Unknown Source",
+      "itemCount": "{count} items",
+      "emptyText": "No clipboard content yet. Start copying something!",
+      "textSize": "{count} char",
+      "sizeKB": "{size}KB",
+      "sizeMB": "{size}MB",
+      "sizeGB": "{size}GB",
+      "fileLink": "File Link"
+    },
+    "confirm": {
+      "delete": {
+        "title": "Confirmation",
+        "content": "Are you sure you want to delete?",
+        "ok": "Confirm",
+        "cancel": "Cancel"
+      }
+    },
+    "message": {
+      "deleteSuccess": "Deleted successfully",
+      "deleteFailed": "Failed to delete, please try again later",
+      "pasteFailed": "Failed to paste, please try again"
+    }
+  },
+  "time": {
+    "daysAgo": "{days}d ago",
+    "hoursAgo": "{hours}h ago",
+    "minutesAgo": "{minutes}m ago",
+    "justNow": "now"
+  },
+  "tips": {
+    "emailFormatError": "Email format error, please enter a valid email",
+    "phoneFormatError": "Phone number format error, please enter a valid phone number",
+    "diffrentPWD": "The two passwords are different",
+    "dangerousAccount": "The system has detected an abnormality in your account. To ensure the security of your account, please verify your identity.",
+    "loginFail": "Login failed, please try again later",
+    "loginSuccess": "Login successful",
+    "registerFail": "Registration failed, please try again later",
+    "registerSuccess": "Registration successful",
+    "sendCaptchaFail": "Verification code failed to be sent, please try again later.",
+    "sendCaptchaSuccess": "Verification code sent successfully",
+    "verifyFail": "Verification failed, please try again later",
+    "verifySuccess": "Verification successful",
+    "notUpdated": "It is currently the latest version",
+    "updateNow": "A new version has been detected and the software is being updated",
+    "newVersion": "A new version has been detected",
+    "confirmUpdateNow": "Whether to restart and update the app immediately"
+  },
+  "verify": {
+    "email": "Bind email",
+    "emailMethod": "Email verification",
+    "more": "More verification methods",
+    "phone": "Bind mobile phone number",
+    "phoneMethod": "Mobile phone number verification",
+    "totp": "Bind TOTP",
+    "totpMethod": "TOTP verification"
+  },
+  "feature": {
+    "hotkey": "Customize Shortcuts",
+    "history": "Save History",
+    "clipboard": "Clipboard Function",
+    "membership": "Limited-time Membership",
+    "sync": "Sync Across Settings",
+    "label": "Tag management",
+    "dataBackup": "Data backup"
+  },
+  "menu": {
+    "delete": "delete",
+    "detail": "detail",
+    "moveTo": "move To"
+  },
+  "onboarding": {
+    "skipButton": "Skip",
+    "startButton": "Get Started",
+    "loginOrRegister": "Login / Register",
+    "steps": {
+      "step1": {
+        "title": "Auto Record After Copy",
+        "description": "All copied content is automatically saved, supporting text, images, files and more"
+      },
+      "step2": {
+        "title": "Open with Shortcut",
+        "description": "Press Alt+V to open clipboard"
+      },
+      "step3": {
+        "title": "Double Click to Paste",
+        "description": "Double click content to paste"
+      },
+      "step4": {
+        "title": "Multi-device Sync",
+        "description": "Automatically sync clipboard content across all devices after login"
+      },
+      "step5": {
+        "title": "Get Started",
+        "description": "Now that you know the basics, let's get started!"
+      }
+    }
+  },
+  "communal": {
+    "deviceState": "status",
+    "refresh": "Refresh",
+    "minimize": "Minimize",
+    "syncData": "sync history",
+    "hideWin": "close the window",
+    "clipping": "Clipping ",
+    "unbounded": "Unbounded",
+    "paste": "Paste ",
+    "unlimited": "Unlimited",
+    "slogan1": "Seamless Sync Across Devices",
+    "slogan2": "Smart Organization & Tags",
+    "slogan3": "20+ Premium Features",
+    "slogan4": "Priority Support & Service",
+    "hotkey": "shortcut key"
+  }
+}

@@ -1,8 +1,8 @@
 import { createI18n } from "vue-i18n"
 import { ref } from "vue"
-// import { Storage, SETTING_STORAGE_KEYS } from "./storage"
-import zhCN from "../lang/zh-CN.json"
-import enUS from "../lang/en-US.json"
+import { Storage, SETTING_STORAGE_KEYS } from "./storage"
+import zhCN from "@/lang/zh-CN.json"
+import enUS from "@/lang/en-US.json"
 import { invoke } from "@tauri-apps/api/core"
 
 type MessageSchema = typeof zhCN
@@ -38,7 +38,7 @@ export const useLanguage = () => {
 
   const initLanguage = async () => {
     try {
-      const savedLocale = "auto"
+      const savedLocale = await Storage.get(SETTING_STORAGE_KEYS.LOCALE, "auto")
       const locale = savedLocale === "auto" ? getSystemLanguage() : savedLocale
       i18n.global.locale.value = locale
       currentLocale.value = savedLocale // 保持用户的选择（auto 或具体语言）
@@ -55,7 +55,7 @@ export const useLanguage = () => {
 
       i18n.global.locale.value = locale
       currentLocale.value = value // 保存用户的选择
-      // await Storage.set(SETTING_STORAGE_KEYS.LOCALE, value)
+      await Storage.set(SETTING_STORAGE_KEYS.LOCALE, value)
     } catch (error) {
       console.error("Failed to update language:", error)
     }
@@ -63,7 +63,7 @@ export const useLanguage = () => {
 
   // 获取可用的语言选项
   const getLanguageOptions = () => [
-    // { label: i18n.global.t("settings.basic.languageAuto"), value: "auto" },
+    { label: i18n.global.t("settings.basic.languageAuto"), value: "auto" },
     { label: "简体中文", value: "zh-CN" },
     { label: "English", value: "en-US" }
   ]
@@ -71,7 +71,7 @@ export const useLanguage = () => {
   // 如果需要监听系统语言变化
   const setupSystemLanguageWatch = () => {
     window.matchMedia("(language: *)").addEventListener("change", async () => {
-      const savedLocale = 'auto';
+      const savedLocale = await Storage.get(SETTING_STORAGE_KEYS.LOCALE, "auto")
       if (savedLocale === "auto") {
         const newLocale = getSystemLanguage()
         i18n.global.locale.value = newLocale

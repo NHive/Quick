@@ -1,0 +1,324 @@
+// 弹性布局
+.flex {
+  display: flex;
+}
+.flex-row-start {
+  @extend .flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.flex-row-center {
+  @extend .flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-row-end {
+  @extend .flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.flex-row-between {
+  @extend .flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.flex-row-around {
+  @extend .flex;
+  align-items: center;
+  justify-content: space-around;
+}
+.flex-col-start {
+  @extend .flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+.flex-col-center {
+  @extend .flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.flex-col-between {
+  @extend .flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+}
+.flex-col-end {
+  @extend .flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+.flex-col {
+  @extend .flex;
+  flex-direction: column;
+}
+.flex-wrap {
+  flex-wrap: wrap;
+}
+.flex-1 {
+  flex: 1;
+}
+.align-start {
+  align-items: start;
+}
+
+// 宽度、高度
+.full-h {
+  height: 100vh;
+}
+.full-w {
+  width: 100vw;
+}
+@for $i from 10 through 100 {
+  .w-#{$i} {
+    width: #{$i} + "%";
+  }
+  .h-#{$i} {
+    height: #{$i} + "%";
+  }
+}
+@for $i from 1 through 500 {
+  .width-#{$i} {
+    width: calc(#{$i} / 10 * 1rem);
+  }
+}
+@for $i from 1 through 500 {
+  .height-#{$i} {
+    height: calc(#{$i} / 10 * 1rem);
+  }
+}
+
+// /* 外边距、内边距全局样式
+@for $i from 1 through 100 {
+  .mt-#{$i} {
+    margin-top: calc(#{$i} / 10 * 1rem);
+  }
+  .mb-#{$i} {
+    margin-bottom: calc(#{$i} / 10 * 1rem);
+  }
+  .mr-#{$i} {
+    margin-right: calc(#{$i} / 10 * 1rem);
+  }
+  .ml-#{$i} {
+    margin-left: calc(#{$i} / 10 * 1rem);
+  }
+  .mg-#{$i} {
+    margin: calc(#{$i} / 10 * 1rem);
+  }
+  .pt-#{$i} {
+    padding-top: calc(#{$i} / 10 * 1rem);
+  }
+  .pb-#{$i} {
+    padding-bottom: calc(#{$i} / 10 * 1rem);
+  }
+  .pr-#{$i} {
+    padding-right: calc(#{$i} / 10 * 1rem);
+  }
+  .pl-#{$i} {
+    padding-left: calc(#{$i} / 10 * 1rem);
+  }
+  .pd-#{$i} {
+    padding: calc(#{$i} / 10 * 1rem);
+  }
+}
+// /* 外边距、内边距全局样式
+@for $i from 1 through 100 {
+  .umt-#{$i} {
+    margin-top: calc(-#{$i} / 10 * 1rem);
+  }
+  .umb-#{$i} {
+    margin-bottom: calc(-#{$i} / 10 * 1rem);
+  }
+  .umr-#{$i} {
+    margin-right: calc(-#{$i} / 10 * 1rem);
+  }
+  .uml-#{$i} {
+    margin-left: calc(-#{$i} / 10 * 1rem);
+  }
+}
+
+@for $i from 1 through 100 {
+  .mtp-#{$i} {
+    margin-top: #{$i}+ "%";
+  }
+  .mbp-#{$i} {
+    margin-bottom: #{$i}+ "%";
+  }
+  .mrp-#{$i} {
+    margin-right: #{$i}+ "%";
+  }
+  .mlp-#{$i} {
+    margin-left: #{$i}+ "%";
+  }
+  .mgp-#{$i} {
+    margin: #{$i}+ "%";
+  }
+  .ptp-#{$i} {
+    padding-top: #{$i}+ "%";
+  }
+  .pbp-#{$i} {
+    padding-bottom: #{$i}+ "%";
+  }
+  .prp-#{$i} {
+    padding-right: #{$i}+ "%";
+  }
+  .plp-#{$i} {
+    padding-left: #{$i}+ "%";
+  }
+  .pdp-#{$i} {
+    padding: #{$i}+ "%";
+  }
+}
+
+// 位置
+.hidden {
+  overflow: hidden;
+}
+.auto {
+  overflow: auto;
+}
+.text-center {
+  text-align: center;
+}
+.text-lf {
+  text-align: left;
+}
+.text-rt {
+  text-align: right;
+}
+.relative {
+  position: relative;
+}
+.absolute {
+  position: absolute;
+}
+.fixed {
+  position: fixed;
+}
+.m-auto {
+  margin: 0 auto;
+}
+.box-sizing {
+  box-sizing: border-box;
+}
+
+// 颜色样式
+$color: (
+  "primary": #f8da52,
+  "black": #202123,
+  "tab": #1e2d4b,
+  "blue": #0a60fe,
+  "grey": #535456,
+  "white": #e5e5e5,
+  "time": #414249,
+  "list": #161a28,
+  // 'list': #fff,
+  "3c": #3c3a3c,
+  "4a": #4f4e50,
+  "text": #8a8a96,
+  "fff": #fff,
+  "red": red,
+  "green": #00b512,
+  "ee": #eee
+);
+// #1c263a #24222d
+@each $key, $value in $color {
+  .bg-#{$key} {
+    background: $value;
+  }
+  .color-#{$key} {
+    color: $value;
+  }
+  @each $values in ("border-left", "border-right", "border-top", "border-bottom", "border") {
+    .#{$values}-#{$key} {
+      #{$values}: 1px solid $value;
+    }
+  }
+}
+
+// 溢出隐藏
+@for $i from 1 through 5 {
+  .clamp-#{$i} {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    -webkit-line-clamp: #{$i};
+  }
+}
+
+// 行高
+@for $i from 1 through 100 {
+  .lineH-#{$i} {
+    line-height: calc(#{$i} / 10 * 1rem);
+  }
+}
+
+// 字体间隔
+@for $i from 1 through 10 {
+  .letter-space-#{$i} {
+    letter-spacing: calc(#{$i} * 1px);
+  }
+}
+
+// 圆角
+@for $i from 1 through 100 {
+  .border-r-#{$i} {
+    border-radius: calc(#{$i} / 10 * 1rem);
+  }
+}
+
+// 字体大小
+@for $i from 1 through 50 {
+  .font-#{$i} {
+    font-size: calc(#{$i} / 10 * 1rem);
+  }
+}
+@for $i from 1 through 50 {
+  .font-px-#{$i} {
+    font-size: #{$i}px;
+  }
+}
+
+.font-weight {
+  font-weight: bold;
+}
+.pointer {
+  cursor: pointer;
+}
+.mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #888;
+  opacity: 0.7;
+  z-index: 0;
+}
+.no-wrap-text {
+  white-space: nowrap;
+}
+::-webkit-scrollbar {
+  width: 0.5rem;
+  height: 4px;
+  background-color: #f5f5f5;
+}
+/*定义滚动条轨道 内阴影+圆角*/
+::-webkit-scrollbar-track {
+  box-shadow: inset 0 0 6px #3c3a3c;
+  -webkit-box-shadow: inset 0 0 6px #3c3a3c;
+  background-color: #3c3a3c;
+}
+/*定义滑块 内阴影+圆角*/
+::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
+  -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
+  background-color: #c8c8c8;
+}
