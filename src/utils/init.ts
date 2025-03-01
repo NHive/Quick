@@ -8,8 +8,7 @@ import {
   unregisterAll,
   type ShortcutEvent
 } from "@tauri-apps/plugin-global-shortcut"
-import { Storage, SETTING_STORAGE_KEYS } from "@/utils/storage"
-import { useLanguage } from "@/utils/i18n"
+import { useLanguage } from "../utils/i18n"
 
 // 获取持久化数据
 export const getLocalShortcut = async (
@@ -102,15 +101,10 @@ const initializeApp = async () => {
   try {
     // 初始化语言
     const { updateLanguage } = useLanguage()
-    const savedLocale = await Storage.get(SETTING_STORAGE_KEYS.LOCALE, "zh-CN")
-    await updateLanguage(savedLocale)
     // 检测操作系统
     const currentPlatform = await platform()
     const isMacOS = currentPlatform === "macos"
     const isWindows = currentPlatform === "windows"
-    Storage.set("isMacOS", isMacOS)
-    Storage.set("isWindows", isWindows)
-    Storage.set("platform", currentPlatform)
   } catch (error) {
     console.error("Failed to initialize app settings:", error)
   }
@@ -146,4 +140,8 @@ const initializeOnboarding = async () => {
     await invoke("open_onboarding_window")
     await Storage.set(SETTING_STORAGE_KEYS.IS_FIRST_START, false)
   }
+}
+
+export const initHome = async () => {
+  await invoke("show_window")
 }

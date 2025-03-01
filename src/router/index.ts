@@ -10,25 +10,13 @@ import { createRouter, createWebHashHistory } from "vue-router"
 // } from "@/views/Setting/components"
 
 import Control from "../views/Control/index.vue"
+import Home from "../views/Home/index.vue"
 
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [
+    // { path: "/", component: Home, meta: { requiresAuth: false } },
     { path: "/", component: Control, meta: { requiresAuth: false } },
-    // {
-    //   path: "/setting",
-    //   component: Setting,
-    //   meta: { requiresAuth: false },
-    //   children: [
-    //     { path: "user", name: "user", component: Account },
-    //     { path: "customSetting", name: "customSetting", component: CustomSetting },
-    //     { path: "historicalRecord", name: "historicalRecord", component: HistoricalRecord },
-    //     { path: "hotkey", name: "hotkey", component: Hotkey },
-    //     { path: "devices", name: "devices", component: Devices },
-    //     { path: "about", name: "about", component: About }
-    //   ]
-    // },
-
   ]
 })
 
