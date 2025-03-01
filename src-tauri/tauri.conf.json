@@ -14,11 +14,11 @@
       {
         "label": "control",
         "fullscreen": false,
-        "height": 220,
+        "height": 230,
         "resizable": false,
         "title": "quick",
         "decorations": false,
-        "width": 80,
+        "width": 50,
         "titleBarStyle": "Overlay",
         "visible": true,
         "skipTaskbar": true,
@@ -26,7 +26,7 @@
         "contentProtected": false,
         "hiddenTitle": true,
         "acceptFirstMouse": true,
-        "focus": false,
+        "focus": true,
         "transparent": true,
         "useHttpsScheme": true
       }

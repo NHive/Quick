@@ -6,6 +6,9 @@ mod tray;
 
 use tauri_plugin_autostart::MacosLauncher;
 
+pub const CONTROL_WINDOW_LABEL: &str = "control"; // 控制窗口标签
+pub const SETTING_WINDOW_LABEL: &str = "setting"; // 设置窗口标签
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let context = tauri::generate_context!();
