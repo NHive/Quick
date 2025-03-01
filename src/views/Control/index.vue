@@ -1,7 +1,7 @@
 <template>
   <div class="container">
     <ul class="controlBox">
-      <li class="controlIcon collapse">
+      <li class="controlIcon collapse" @click="openSettingWindow">
         <div class="iconWrapper" v-html="icons.collapse"></div>
       </li>
       <li class="controlIcon moveIcon">
@@ -54,13 +54,13 @@ const openWindowByLink = async () => {
   width: 100%;
   height: 100vh;
   margin: 0;
-  background-color: #f0f0f0;
+  background-color: #f9fbff;
   overflow: hidden;
 }
 
 .controlBox {
   list-style: none;
-  padding: 15px 0;
+  padding: 15px 10px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -71,14 +71,12 @@ const openWindowByLink = async () => {
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #fff;
     box-sizing: border-box;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 30px;
+    height: 30px;
     cursor: pointer;
-    margin-bottom: 12px;
+    margin-bottom: 20px;
+    color: #888;
   }
 
   .moveIcon {
@@ -92,7 +90,6 @@ const openWindowByLink = async () => {
     width: 100%;
     height: 100%;
     z-index: 10;
-    border-radius: 50%;
   }
 
   .iconWrapper {
@@ -105,6 +102,7 @@ const openWindowByLink = async () => {
     z-index: 5;
     pointer-events: none;
     /* 防止图标本身接收点击事件 */
+    opacity: 0.8;
   }
 
   .collapse .iconWrapper {
