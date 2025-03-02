@@ -8,10 +8,12 @@ use tauri::Manager;
 
 use communication::events::app_events::WindowFocusState;
 use tauri_plugin_autostart::MacosLauncher;
+use tauri_plugin_global_shortcut::GlobalShortcutExt;
 use window::quick_window::{WindowManager, WindowManagerState};
 use window::window_layout::{WindowPositionTracker, WindowPositionTrackerState};
 
 use communication::events::app_events::handle_app_events;
+use communication::events::global_shortcut::global_shortcuts_handle;
 
 pub const CONTROL_WINDOW_LABEL: &str = "control"; // 控制窗口标签
 pub const SETTING_WINDOW_LABEL: &str = "setting"; // 设置窗口标签
@@ -23,6 +25,14 @@ pub fn run() {
     let mut app_builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        // 注册全局快捷键插件
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(move |app, shortcut, event| {
+                    global_shortcuts_handle(app, shortcut, event)
+                })
+                .build(),
+        )
         .setup(|app| {
             // 创建托盘
             let _ = infrastructure::tray::menu(app.handle());
@@ -42,8 +52,6 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         // 注册系统api插件
         .plugin(tauri_plugin_os::init())
-        // 注册全局快捷键插件
-        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         // 注册系统原生通知插件
         .plugin(tauri_plugin_notification::init())
         // 注册shell插件
@@ -60,6 +68,11 @@ pub fn run() {
 
     #[cfg(target_os = "macos")]
     app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
+    use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut};
+
+    let open_control_window = Shortcut::new(Some(Modifiers::ALT), Code::KeyC);
+    app.global_shortcut().register(open_control_window).unwrap();
 
     app.run(handle_app_events);
 }

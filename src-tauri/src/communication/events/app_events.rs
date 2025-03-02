@@ -10,8 +10,8 @@ pub struct WindowFocusState {
     pub control_focused: Mutex<bool>,
     pub quick_windows_focused: Mutex<bool>,
     quick_window_labels: Mutex<HashSet<String>>,
-    last_focus_change: Mutex<Instant>, // 添加焦点切换时间追踪
-    hide_pending: Mutex<bool>,         // 添加挂起的隐藏操作标记
+    last_focus_change: Mutex<Instant>, // 焦点切换时间追踪
+    hide_pending: Mutex<bool>,         // 挂起的隐藏操作标记
 }
 
 impl Default for WindowFocusState {
@@ -20,7 +20,7 @@ impl Default for WindowFocusState {
             control_focused: Mutex::new(false),
             quick_windows_focused: Mutex::new(false),
             quick_window_labels: Mutex::new(HashSet::new()),
-            last_focus_change: Mutex::new(Instant::now()),
+            last_focus_change: Mutex::new(Instant::now()), // 手动初始化为当前时间
             hide_pending: Mutex::new(false),
         }
     }
@@ -48,6 +48,42 @@ pub fn handle_app_events<R: Runtime>(app_handle: &AppHandle<R>, event: RunEvent)
             _ => {}
         },
         _ => {}
+    }
+}
+
+// 同步 quick 窗口位置
+pub fn sync_quick_windows_position<R: Runtime>(app_handle: &AppHandle<R>) {
+    let Some(focus_state) = app_handle.try_state::<WindowFocusState>() else {
+        eprintln!("WindowFocusState not initialized!");
+        return;
+    };
+
+    // 获取 control 窗口的位置和大小
+    let control_position = match WindowUtils::get_window_position(app_handle, "control") {
+        Ok(pos) => pos,
+        Err(_) => return,
+    };
+
+    let control_size = match WindowUtils::get_window_size(app_handle, "control") {
+        Ok(size) => size,
+        Err(_) => return,
+    };
+
+    // 获取所有 quick 窗口的 label
+    let quick_labels = match focus_state.quick_window_labels.lock() {
+        Ok(labels) => labels.clone(),
+        Err(_) => return,
+    };
+
+    // 同步所有 quick 窗口的位置
+    for label in quick_labels.iter() {
+        if let Some(window) = app_handle.get_webview_window(label) {
+            let new_x = control_position.x + control_size.width as f64;
+            let new_y = control_position.y;
+
+            // 设置 quick 窗口位置
+            let _ = window.set_position(tauri::LogicalPosition::new(new_x, new_y));
+        }
     }
 }
 
@@ -83,7 +119,10 @@ fn handle_move_event<R: Runtime>(
                                     size.height,
                                 );
                                 if need_sync {
+                                    // 同步窗口位置
                                     let _ = WindowLayoutManager::sync_window_positions(&app_handle);
+                                    // 同步 quick 窗口位置
+                                    sync_quick_windows_position(&app_handle);
                                 }
                             }
                         }
@@ -143,6 +182,9 @@ fn handle_resize_event<R: Runtime>(
                                 logical_size.width,
                                 logical_size.height,
                             );
+
+                            // 当 control 窗口大小变化时，同步 quick 窗口的位置
+                            sync_quick_windows_position(&app_handle);
                         } else {
                             tracker.update_window_position(
                                 label,

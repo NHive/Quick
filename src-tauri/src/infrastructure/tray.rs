@@ -1,12 +1,10 @@
 use tauri::{
     menu::{MenuBuilder, MenuItemBuilder},
     tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Error, Manager,
+    AppHandle, Error,
 };
-use tokio::runtime::Runtime;
 
 use crate::window::control;
-use crate::CONTROL_WINDOW_LABEL;
 
 // 托盘菜单
 pub fn menu(app: &AppHandle) -> Result<TrayIcon, Error> {
@@ -20,7 +18,7 @@ pub fn menu(app: &AppHandle) -> Result<TrayIcon, Error> {
         .show_menu_on_left_click(false)
         .tooltip("Quick - Newbee")
         .icon_as_template(true)
-        .on_menu_event(move |app, event| match event.id.0.as_str() {
+        .on_menu_event(move |_app, event| match event.id.0.as_str() {
             "quit" => {
                 std::process::exit(0);
             }
@@ -34,11 +32,7 @@ pub fn menu(app: &AppHandle) -> Result<TrayIcon, Error> {
             } = event
             {
                 if let (MouseButton::Left, MouseButtonState::Up) = (button, button_state) {
-                    if let Some(main_window) =
-                        tray.app_handle().get_webview_window(CONTROL_WINDOW_LABEL)
-                    {
-                        main_window.show();
-                    }
+                    let _ = control::show_control_window::<tauri::Wry>(tray.app_handle());
                 }
             }
         })

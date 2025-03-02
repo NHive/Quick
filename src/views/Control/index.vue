@@ -20,13 +20,13 @@
 </template>
 <script setup lang="ts">
 import { icons } from '@/utils/svg';
-import { invoke } from "@tauri-apps/api/core"
+import { invoke } from "@tauri-apps/api/core";
+import { onMounted, onUnmounted } from 'vue';
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
 
-// 设置窗口和URL窗口使用完全不同的命令
 const openSettingWindow = async () => {
   try {
-    const response = await invoke('open_setting_window');
-    console.log('Setting window opened:', response);
+    await invoke('open_setting_window');
   } catch (error) {
     console.error('Failed to open setting window:', error);
   }
@@ -34,16 +34,42 @@ const openSettingWindow = async () => {
 
 const openWindowByLink = async () => {
   try {
-    // 确保这是一个单独的、不同的命令
-    const response = await invoke('cmd_create_window', {
+    await invoke('cmd_create_window', {
       url: "https://chat.deepseek.com",
       title: "deepseek"
     });
-    console.log('Window opened with URL:', response);
   } catch (error) {
     console.error('Failed to open window with URL:', error);
   }
 };
+
+// 添加窗口显示监听
+onMounted(async () => {
+  try {
+    const window = getCurrentWebviewWindow();
+
+    // 监听窗口显示事件
+    const unlisten = await window.onFocusChanged(() => {
+      console.log('Window is shown, opening link window');
+      openWindowByLink();
+    });
+
+    // 清理函数
+    onUnmounted(() => {
+      unlisten();
+    });
+
+    // 如果窗口已经是可见状态，也调用一次
+    const isVisible = await window.isVisible();
+    if (isVisible) {
+      console.log('Window is already visible, opening link window');
+      openWindowByLink();
+    }
+  } catch (error) {
+    console.error('Error setting up window event listener:', error);
+  }
+});
+
 </script>
 <style lang="scss" scoped>
 .container {

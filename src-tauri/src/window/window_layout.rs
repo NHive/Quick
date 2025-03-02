@@ -5,7 +5,7 @@ use tauri::{AppHandle, Manager, Runtime};
 use crate::logic::tools::window_utils::WindowUtils;
 
 // 导入之前的窗口管理器
-use crate::window::quick_window::{WindowManagerState, WindowStatus};
+use crate::window::quick_window::WindowManagerState;
 
 // 窗口位置数据结构
 #[derive(Debug, Clone, Copy)]
@@ -235,8 +235,7 @@ impl WindowLayoutManager {
 
         // 同步所有受管理窗口的位置
         for window_info in window_manager.get_windows() {
-            if window_info.label != "control" && !matches!(window_info.status, WindowStatus::Hidden)
-            {
+            if window_info.label != "control" {
                 if let Some(pos) = tracker.get_window_position(&window_info.label) {
                     if let Some(window) = app_handle.get_webview_window(&window_info.label) {
                         let _ = WindowUtils::set_window_position(&window, pos.x, pos.y);
