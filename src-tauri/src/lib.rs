@@ -1,10 +1,17 @@
-mod app_window;
-mod command;
-mod error;
-mod system_tools;
-mod tray;
+mod window;
+use std::sync::{Arc, Mutex};
+mod communication;
+mod infrastructure;
+mod logic;
 
+use tauri::Manager;
+
+use communication::events::app_events::WindowFocusState;
 use tauri_plugin_autostart::MacosLauncher;
+use window::quick_window::{WindowManager, WindowManagerState};
+use window::window_layout::{WindowPositionTracker, WindowPositionTrackerState};
+
+use communication::events::app_events::handle_app_events;
 
 pub const CONTROL_WINDOW_LABEL: &str = "control"; // 控制窗口标签
 pub const SETTING_WINDOW_LABEL: &str = "setting"; // 设置窗口标签
@@ -18,11 +25,17 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             // 创建托盘
-            let _ = tray::menu(app.handle());
+            let _ = infrastructure::tray::menu(app.handle());
+            let window_manager = WindowManager::new();
+            app.manage(WindowManagerState(Arc::new(Mutex::new(window_manager))));
+            app.manage(WindowFocusState::default());
+            app.manage(WindowPositionTrackerState(Arc::new(Mutex::new(
+                WindowPositionTracker::new(),
+            ))));
             Ok(())
         });
 
-    app_builder = command::register_commands()(app_builder);
+    app_builder = communication::command::register_commands()(app_builder);
 
     let mut app = app_builder
         // 注册http请求插件
@@ -49,8 +62,4 @@ pub fn run() {
     app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
     app.run(handle_app_events);
-}
-
-fn handle_app_events(app_handle: &tauri::AppHandle, event: tauri::RunEvent) {
-    if let tauri::RunEvent::WindowEvent { label, event, .. } = event {}
 }

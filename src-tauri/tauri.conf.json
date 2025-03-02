@@ -14,7 +14,7 @@
       {
         "label": "control",
         "fullscreen": false,
-        "height": 230,
+        "height": 260,
         "resizable": false,
         "title": "quick",
         "decorations": false,

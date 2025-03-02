@@ -35,17 +35,13 @@ const openSettingWindow = async () => {
 const openWindowByLink = async () => {
   try {
     // 确保这是一个单独的、不同的命令
-    const response = await invoke('open_window_by_url', {
-      url: "https://chat.deepseek.com"
+    const response = await invoke('cmd_create_window', {
+      url: "https://chat.deepseek.com",
+      title: "deepseek"
     });
     console.log('Window opened with URL:', response);
   } catch (error) {
     console.error('Failed to open window with URL:', error);
-    // 添加更多调试信息
-    console.debug('Command details:', {
-      command: 'open_window_by_url',
-      params: { url: "https://chat.deepseek.com" }
-    });
   }
 };
 </script>

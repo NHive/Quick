@@ -1,10 +1,12 @@
 use tauri::{
     menu::{MenuBuilder, MenuItemBuilder},
     tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent},
-    Error, Manager,
+    AppHandle, Error, Manager,
 };
+use tokio::runtime::Runtime;
 
-use tauri::AppHandle;
+use crate::window::control;
+use crate::CONTROL_WINDOW_LABEL;
 
 // 托盘菜单
 pub fn menu(app: &AppHandle) -> Result<TrayIcon, Error> {
@@ -30,7 +32,15 @@ pub fn menu(app: &AppHandle) -> Result<TrayIcon, Error> {
                 button_state,
                 ..
             } = event
-            {}
+            {
+                if let (MouseButton::Left, MouseButtonState::Up) = (button, button_state) {
+                    if let Some(main_window) =
+                        tray.app_handle().get_webview_window(CONTROL_WINDOW_LABEL)
+                    {
+                        main_window.show();
+                    }
+                }
+            }
         })
         .build(app)?;
 
