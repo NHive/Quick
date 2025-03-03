@@ -18,11 +18,8 @@ pub fn menu(app: &AppHandle) -> Result<TrayIcon, Error> {
         .show_menu_on_left_click(false)
         .tooltip("Quick - Newbee")
         .icon_as_template(true)
-        .on_menu_event(move |_app, event| match event.id.0.as_str() {
-            "quit" => {
-                std::process::exit(0);
-            }
-            _ => {}
+        .on_menu_event(move |_app, event| if event.id.0.as_str() == "quit" {
+            std::process::exit(0);
         })
         .on_tray_icon_event(|tray, event| {
             if let TrayIconEvent::Click {

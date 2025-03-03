@@ -40,15 +40,12 @@ pub fn register_quick_window_label<R: Runtime>(app_handle: &AppHandle<R>, label:
 // 处理应用事件
 pub fn handle_app_events<R: Runtime>(app_handle: &AppHandle<R>, event: RunEvent) {
     let app_handle_clone = Arc::new(app_handle.clone());
-    match event {
-        RunEvent::WindowEvent { label, event, .. } => match event {
-            WindowEvent::Moved(position) => handle_move_event(&app_handle_clone, &label, position),
-            WindowEvent::Resized(size) => handle_resize_event(&app_handle_clone, &label, size),
-            WindowEvent::Focused(focused) => handle_focus_event(&app_handle_clone, &label, focused),
-            _ => {}
-        },
+    if let RunEvent::WindowEvent { label, event, .. } = event { match event {
+        WindowEvent::Moved(position) => handle_move_event(&app_handle_clone, &label, position),
+        WindowEvent::Resized(size) => handle_resize_event(&app_handle_clone, &label, size),
+        WindowEvent::Focused(focused) => handle_focus_event(&app_handle_clone, &label, focused),
         _ => {}
-    }
+    } }
 }
 
 // 同步 quick 窗口位置
@@ -78,7 +75,7 @@ pub fn sync_quick_windows_position<R: Runtime>(app_handle: &AppHandle<R>) {
     // 同步所有 quick 窗口的位置
     for label in quick_labels.iter() {
         if let Some(window) = app_handle.get_webview_window(label) {
-            let new_x = control_position.x + control_size.width as f64;
+            let new_x = control_position.x + control_size.width;
             let new_y = control_position.y;
 
             // 设置 quick 窗口位置
