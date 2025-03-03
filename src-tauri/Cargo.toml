@@ -20,8 +20,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = ["tray-icon", "image-png", 'image-ico'] }
 tauri-plugin-opener = "2"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+
 
 # Tauri 插件
 tauri-plugin-single-instance = "2" # 单实例
@@ -40,6 +39,11 @@ lazy_static = "1.4.0"
 parking_lot = "0.12"
 url = "2.5.0"
 sha2 = "0.10.8"
+flexi_logger = "0.28"
+chrono = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_derive = "1"
 
 # 系统交互
 mouse_position = "0.1.3"

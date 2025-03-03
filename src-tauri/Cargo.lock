@@ -7,10 +7,12 @@ name = "Quick-Newbee"
 version = "0.1.0"
 dependencies = [
  "active-win-pos-rs",
+ "chrono",
  "cocoa 0.24.1",
  "core-foundation 0.9.4",
  "core-foundation-sys",
  "enigo",
+ "flexi_logger",
  "lazy_static",
  "log",
  "mouse_position",
@@ -18,6 +20,7 @@ dependencies = [
  "objc_id",
  "parking_lot",
  "serde",
+ "serde_derive",
  "serde_json",
  "sha2",
  "tauri",
@@ -658,8 +661,10 @@ checksum = "1a7964611d71df112cb1730f2ee67324fcf4d0fc6606acbbe9bfe06df124637c"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
+ "js-sys",
  "num-traits",
  "serde",
+ "wasm-bindgen",
  "windows-link",
 ]
 
@@ -1146,7 +1151,7 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330c60081dcc4c72131f8eb70510f1ac07223e5d4163db481a04a0befcffa412"
 dependencies = [
- "libloading 0.7.4",
+ "libloading 0.8.6",
 ]
 
 [[package]]
@@ -1394,6 +1399,20 @@ checksum = "11faaf5a5236997af9848be0bef4db95824b1d534ebc64d0f0c6cf3e67bd38dc"
 dependencies = [
  "crc32fast",
  "miniz_oxide",
+]
+
+[[package]]
+name = "flexi_logger"
+version = "0.28.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cca927478b3747ba47f98af6ba0ac0daea4f12d12f55e9104071b3dc00276310"
+dependencies = [
+ "chrono",
+ "glob",
+ "log",
+ "nu-ansi-term",
+ "regex",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -2762,6 +2781,15 @@ dependencies = [
  "serde",
  "tauri-winrt-notification",
  "zbus",
+]
+
+[[package]]
+name = "nu-ansi-term"
+version = "0.50.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4a28e057d01f97e61255210fcff094d74ed0466038633e95017f5beb68e4399"
+dependencies = [
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
