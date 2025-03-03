@@ -21,6 +21,12 @@ pub struct WindowManager {
     control_position: Option<WindowPosition>,
     /// 是否正在更新状态(避免递归更新)
     is_updating: bool,
+    /// 最后一次更新的窗口标签
+    updating_source: Option<String>,
+    /// 最后一次更新的时间戳
+    last_update_time: std::time::Instant,
+    /// 更新锁定时间(毫秒)
+    update_lock_duration: u64,
 }
 
 impl WindowManager {
@@ -33,6 +39,9 @@ impl WindowManager {
             window_configs: Vec::new(),
             control_position: None,
             is_updating: false,
+            updating_source: None,
+            last_update_time: std::time::Instant::now(),
+            update_lock_duration: 300, // 默认300毫秒锁定时间
         }
     }
 
@@ -140,8 +149,8 @@ impl WindowManager {
 
     /// 更新控制窗口位置
     pub fn update_control_position(&mut self, position: WindowPosition) -> bool {
-        // 避免递归更新
-        if self.is_updating {
+        // 检查是否允许更新
+        if !self.can_update("control") {
             return false;
         }
 
@@ -152,19 +161,21 @@ impl WindowManager {
                 && (existing.width - position.width).abs() < 1.0
                 && (existing.height - position.height).abs() < 1.0
             {
+                self.finish_update();
                 return false;
             }
         }
 
         // 更新控制窗口位置
         self.control_position = Some(position);
+        self.finish_update();
         true
     }
 
     /// 更新窗口位置
     pub fn update_window_position(&mut self, label: &str, position: WindowPosition) -> bool {
-        // 避免递归更新
-        if self.is_updating {
+        // 检查是否允许更新
+        if !self.can_update(label) {
             return false;
         }
 
@@ -176,15 +187,18 @@ impl WindowManager {
                     && (existing.width - position.width).abs() < 1.0
                     && (existing.height - position.height).abs() < 1.0
                 {
+                    self.finish_update();
                     return false;
                 }
             }
 
             // 更新位置信息
             window.position = Some(position);
+            self.finish_update();
             return true;
         }
 
+        self.finish_update();
         false
     }
 
@@ -200,6 +214,41 @@ impl WindowManager {
     /// 获取控制窗口位置
     pub fn get_control_position(&self) -> Option<WindowPosition> {
         self.control_position
+    }
+
+    /// 检查是否允许窗口进行更新
+    pub fn can_update(&mut self, label: &str) -> bool {
+        let current_time = std::time::Instant::now();
+
+        // 如果锁定时间已过或没有正在更新的窗口，则可以更新
+        if !self.is_updating
+            || current_time
+                .duration_since(self.last_update_time)
+                .as_millis()
+                > self.update_lock_duration as u128
+        {
+            // 重置更新状态
+            self.is_updating = true;
+            self.updating_source = Some(label.to_string());
+            self.last_update_time = current_time;
+            return true;
+        }
+
+        // 如果是同一窗口继续更新，允许更新
+        if let Some(source) = &self.updating_source {
+            if source == label {
+                self.last_update_time = current_time;
+                return true;
+            }
+        }
+
+        // 其他情况不允许更新
+        false
+    }
+
+    /// 完成更新
+    pub fn finish_update(&mut self) {
+        // 不立即释放锁定，让锁定时间到期自动释放
     }
 }
 

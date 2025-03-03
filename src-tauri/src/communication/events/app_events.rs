@@ -9,8 +9,6 @@ use crate::logic::window_manager::operations::{
     position_control_window_below_quick, sync_positions_after_control_moved,
 };
 
-use crate::logic::window_manager::models::{WindowConfig, WindowManagerState, WindowPosition};
-
 // 窗口焦点状态追踪结构体
 pub struct WindowFocusState {
     control_focused: bool,                // 控制窗口是否拥有焦点
@@ -93,14 +91,6 @@ pub fn handle_app_events<R: Runtime>(app_handle: &AppHandle<R>, event: RunEvent)
             _ => {}
         }
     }
-}
-
-// 初始化事件系统及状态
-pub fn init_event_system<R: Runtime>(app_handle: &AppHandle<R>) {
-    info!("初始化事件系统");
-    // 创建并注册焦点状态
-    let focus_state = WindowFocusState::new();
-    app_handle.manage(Arc::new(Mutex::new(focus_state)));
 }
 
 // 处理窗口移动事件

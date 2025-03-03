@@ -12,7 +12,6 @@ use tauri_plugin_global_shortcut::GlobalShortcutExt;
 use tauri_plugin_log::{Target, TargetKind};
 // use window::quick_window::{WindowManager, WindowManagerState};
 // use window::window_layout::{WindowPositionTracker, WindowPositionTrackerState};
-use communication::events::app_events::init_event_system;
 use logic::window_manager::manager::init_window_manager;
 
 use communication::events::app_events::handle_app_events;
@@ -47,6 +46,9 @@ pub fn run() {
             // let window_manager = WindowManager::new();
 
             let tx = init_window_manager(&app.app_handle());
+
+            // 初始化窗口焦点状态追踪器
+            app.manage(WindowFocusState::new());
 
             app.manage(AppPath::new());
             // app.manage(WindowPositionTrackerState(Arc::new(Mutex::new(

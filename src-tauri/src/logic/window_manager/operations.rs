@@ -292,6 +292,22 @@ pub fn position_control_window_below_quick<R: Runtime>(
     app: &AppHandle<R>,
     quick_window_label: &str,
 ) -> Result<(), Error> {
+    use log::{debug, warn};
+
+    // 获取快速窗口
+    let quick_window = app.get_webview_window(quick_window_label).ok_or_else(|| {
+        Error::from(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!("窗口 {} 未找到", quick_window_label),
+        ))
+    })?;
+
+    // 获取控制窗口
+    let control_window = match app.get_webview_window("control") {
+        Some(window) => window,
+        None => return Ok(()), // 控制窗口可能尚不存在
+    };
+
     // 获取快速窗口位置
     let quick_position = get_window_position_and_size(app, quick_window_label)?;
 
@@ -305,22 +321,46 @@ pub fn position_control_window_below_quick<R: Runtime>(
     let control_x = quick_position.x + (quick_position.width - control_position.width) / 2.0;
     let control_y = quick_position.y + quick_position.height + 10.0; // 10px间隙
 
-    // 设置控制窗口位置
-    if let Some(control_window) = app.get_webview_window("control") {
+    debug!("控制窗口位置计算: control_x={}, control_y={}, 基于快速窗口: x={}, y={}, width={}, height={}",
+        control_x, control_y, quick_position.x, quick_position.y, quick_position.width, quick_position.height);
+
+    // 更新窗口管理器中的位置信息，检查是否被允许更新
+    let can_update = if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
+        if let Ok(mut window_manager) = window_manager_state.0.try_lock() {
+            window_manager.can_update(quick_window_label)
+        } else {
+            false
+        }
+    } else {
+        false
+    };
+
+    // 如果允许更新，则设置控制窗口位置
+    if can_update {
         #[cfg(target_os = "macos")]
         {
-            // macOS 使用逻辑坐标
-            let _ = control_window.set_position(tauri::LogicalPosition::new(control_x, control_y));
+            control_window.set_position(LogicalPosition::new(control_x, control_y))?;
         }
 
         #[cfg(not(target_os = "macos"))]
         {
-            // Windows 使用物理坐标
+            // 与 position_quick_window_above_control 保持一致的坐标转换
             if let Ok(scale_factor) = control_window.scale_factor() {
                 let physical_x = control_x * scale_factor;
                 let physical_y = control_y * scale_factor;
-                let _ = control_window
-                    .set_position(tauri::PhysicalPosition::new(physical_x, physical_y));
+
+                debug!(
+                    "设置控制窗口物理位置: physical_x={}, physical_y={}, 缩放因子: {}",
+                    physical_x, physical_y, scale_factor
+                );
+
+                control_window
+                    .set_position(PhysicalPosition::new(physical_x as i32, physical_y as i32))?;
+            } else {
+                // 降级方案，如果无法获取缩放因子
+                warn!("无法获取缩放因子，使用未缩放坐标");
+                control_window
+                    .set_position(PhysicalPosition::new(control_x as i32, control_y as i32))?;
             }
         }
 
@@ -333,8 +373,8 @@ pub fn position_control_window_below_quick<R: Runtime>(
         };
 
         if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
-            if let Ok(mut manager) = window_manager_state.0.try_lock() {
-                manager.update_control_position(updated_position);
+            if let Ok(mut window_manager) = window_manager_state.0.try_lock() {
+                window_manager.update_control_position(updated_position);
             }
         }
     }
@@ -405,9 +445,23 @@ pub fn sync_positions_after_control_moved<R: Runtime>(app: &AppHandle<R>) -> Res
     // 获取活跃快速窗口（一次只显示一个）
     let active_window = get_active_window(app);
 
-    if let Some(quick_window) = active_window {
-        if quick_window.label != "control" {
-            position_quick_window_above_control(app, &quick_window.label)?;
+    // 检查是否允许更新
+    let can_update = if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
+        if let Ok(mut window_manager) = window_manager_state.0.try_lock() {
+            window_manager.can_update("control")
+        } else {
+            false
+        }
+    } else {
+        false
+    };
+
+    if can_update {
+        if let Some(quick_window) = active_window {
+            if quick_window.label != "control" {
+                // 同步快速窗口位置
+                position_quick_window_above_control(app, &quick_window.label)?;
+            }
         }
     }
 
