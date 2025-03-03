@@ -296,6 +296,7 @@ pub fn create_or_switch_window<R: Runtime>(
             builder = builder.transparent(true);
         }
 
+        // 构建窗口
         let new_window = builder.build()?;
 
         // 标记窗口为已加载
@@ -305,14 +306,31 @@ pub fn create_or_switch_window<R: Runtime>(
             window_manager.mark_window_loaded(&label);
         }
 
-        // 安全地设置新窗口位置
+        // 显示新窗口 - 先确保窗口显示，再设置位置，避免可能的事件纠缠
+        new_window.show()?;
+        new_window.set_focus()?;
+
+        // 使用异步方式设置窗口位置，避免阻塞主线程
+        // Windows下特别处理，使用非阻塞方式
+        #[cfg(target_os = "windows")]
+        {
+            // 克隆 app_handle 和 label 用于异步操作
+            let app_handle_clone = app.clone();
+            let label_clone = label.clone();
+
+            // 使用 tauri 提供的异步执行机制，延迟一小段时间后设置位置
+            tauri::async_runtime::spawn(async move {
+                // 小延迟，确保窗口已完全创建
+                tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+                let _ = set_new_window_position_safely(&app_handle_clone, &label_clone);
+            });
+        }
+
+        // 在非Windows平台上直接设置位置
+        #[cfg(not(target_os = "windows"))]
         {
             set_new_window_position_safely(app, &label)?;
         }
-
-        // 显示新窗口
-        new_window.show()?;
-        new_window.set_focus()?;
 
         // 更新其他窗口状态
         for other_info in windows_to_update {
@@ -326,7 +344,20 @@ pub fn create_or_switch_window<R: Runtime>(
         }
     }
 
-    sync_quick_windows_position(app);
+    // 同步窗口位置，使用非阻塞方式
+    #[cfg(target_os = "windows")]
+    {
+        let app_clone = app.clone();
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+            sync_quick_windows_position(&app_clone);
+        });
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        sync_quick_windows_position(app);
+    }
 
     Ok(())
 }
@@ -467,26 +498,27 @@ pub fn set_new_window_position_safely<R: Runtime>(
         // 获取窗口的实际大小
         let window_size = window.inner_size()?;
 
-        // 在所有其他操作之后更新跟踪器中的位置信息
+        // 使用 try_lock 避免死锁
         if let Some(tracker_state) = app_handle.try_state::<WindowPositionTrackerState>() {
-            let mut tracker = tracker_state.0.lock().unwrap();
+            // 使用 try_lock 而不是 lock，如果无法获取锁，就跳过更新
+            if let Ok(mut tracker) = tracker_state.0.try_lock() {
+                // 更新控制窗口位置
+                tracker.update_control_position(
+                    control_position.x as f64,
+                    control_position.y as f64,
+                    control_size.width as f64,
+                    control_size.height as f64,
+                );
 
-            // 更新控制窗口位置
-            tracker.update_control_position(
-                control_position.x as f64,
-                control_position.y as f64,
-                control_size.width as f64,
-                control_size.height as f64,
-            );
-
-            // 更新新窗口位置
-            tracker.update_window_position(
-                window_label.to_string(),
-                window_x,
-                window_y,
-                window_size.width as f64,
-                window_size.height as f64,
-            );
+                // 更新新窗口位置
+                tracker.update_window_position(
+                    window_label.to_string(),
+                    window_x,
+                    window_y,
+                    window_size.width as f64,
+                    window_size.height as f64,
+                );
+            }
         }
     }
 
