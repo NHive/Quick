@@ -1,7 +1,7 @@
 // 窗口操作的API实现
 
 use tauri::utils::config::WebviewUrl;
-use tauri::{AppHandle, Error, LogicalPosition, Manager, Runtime, WebviewWindowBuilder};
+use tauri::{AppHandle, Error, Manager, Runtime, WebviewWindowBuilder};
 
 #[cfg(target_os = "macos")]
 use tauri::TitleBarStyle;
