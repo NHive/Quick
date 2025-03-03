@@ -4,6 +4,7 @@ mod infrastructure;
 mod logic;
 mod window;
 
+use std::sync::{Arc, Mutex};
 use tauri::Manager;
 
 use communication::events::app_events::WindowFocusState;
@@ -48,7 +49,7 @@ pub fn run() {
             let tx = init_window_manager(&app.app_handle());
 
             // 初始化窗口焦点状态追踪器
-            app.manage(WindowFocusState::new());
+            app.manage(Arc::new(Mutex::new(WindowFocusState::new())));
 
             app.manage(AppPath::new());
             // app.manage(WindowPositionTrackerState(Arc::new(Mutex::new(
