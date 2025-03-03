@@ -27,7 +27,7 @@
         "hiddenTitle": true,
         "acceptFirstMouse": true,
         "focus": true,
-        "transparent": true,
+        "transparent": false,
         "useHttpsScheme": true
       }
     ],

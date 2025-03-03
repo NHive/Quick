@@ -277,7 +277,6 @@ pub fn create_or_switch_window<R: Runtime>(
             .resizable(true)
             .visible(false)
             .skip_taskbar(true)
-            .hidden_title(true)
             .decorations(false)
             .always_on_top(true);
 
@@ -288,6 +287,7 @@ pub fn create_or_switch_window<R: Runtime>(
         #[cfg(target_os = "macos")]
         {
             builder = builder.title_bar_style(TitleBarStyle::Overlay);
+            builder = builder.hidden_title(true);
         }
         // 在Windows和Linux上移除标题栏
         #[cfg(not(target_os = "macos"))]
