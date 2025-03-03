@@ -16,7 +16,6 @@ pub fn register_commands<R: tauri::Runtime>() -> impl Fn(tauri::Builder<R>) -> t
             cmd_get_active_window,
             cmd_get_previous_window,
             cmd_show_previous_window,
-            cmd_generate_window_label,
         ])
     }
 }

@@ -24,7 +24,6 @@ fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(switch_window);
     cfg.service(create_window);
     cfg.service(configure_window_list);
-    cfg.service(update_window_position);
     cfg.service(get_window_manager_state);
 }
 

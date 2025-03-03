@@ -5,11 +5,12 @@ use serde::Deserialize;
 use serde_json::json;
 use tauri::Manager;
 
-use crate::window::window_manager::{
+use crate::logic::window_manager::operations::{
     configure_windows, create_or_switch_window, get_active_window, get_all_windows,
-    get_previous_active_window, show_previous_window, switch_to_window, WindowConfig,
-    WindowManagerState, WindowPosition,
+    get_previous_active_window, show_previous_window, switch_to_window,
 };
+
+use crate::logic::window_manager::models::{WindowConfig, WindowManagerState, WindowPosition};
 
 use super::AppState;
 
@@ -201,30 +202,6 @@ async fn configure_window_list(
 struct WindowPositionRequest {
     label: String,
     position: WindowPosition,
-}
-
-// 更新窗口位置信息
-#[post("/api/debug/windows/position")]
-async fn update_window_position(
-    app_state: web::Data<AppState>,
-    req: web::Json<WindowPositionRequest>,
-) -> impl Responder {
-    let app_handle = match app_state.app_handle.lock() {
-        Ok(handle) => handle.clone(),
-        Err(_) => {
-            return HttpResponse::InternalServerError()
-                .json(json!({"error": "Failed to lock app handle"}))
-        }
-    };
-
-    if let Some(window_manager_state) = app_handle.try_state::<WindowManagerState>() {
-        if let Ok(mut window_manager) = window_manager_state.0.try_lock() {
-            let result = window_manager.update_window_position(req.label.clone(), req.position);
-            return HttpResponse::Ok().json(json!({"success": result}));
-        }
-    }
-
-    HttpResponse::InternalServerError().json(json!({"error": "Failed to access window manager"}))
 }
 
 // 获取窗口管理器当前状态的详细信息
