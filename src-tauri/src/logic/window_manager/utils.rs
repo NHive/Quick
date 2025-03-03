@@ -38,13 +38,31 @@ pub fn get_window_position_and_size<R: Runtime>(
         ))
     })?;
 
-    let position = window.outer_position()?;
-    let size = window.inner_size()?;
+    #[cfg(target_os = "macos")]
+    {
+        // macOS 使用逻辑坐标
+        let position = window.outer_position()?;
+        let size = window.inner_size()?;
 
-    Ok(WindowPosition {
-        x: position.x as f64,
-        y: position.y as f64,
-        width: size.width as f64,
-        height: size.height as f64,
-    })
+        Ok(WindowPosition {
+            x: f64::from(position.x),
+            y: f64::from(position.y),
+            width: f64::from(size.width),
+            height: f64::from(size.height),
+        })
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        // Windows 和其他系统使用物理坐标
+        let position = window.outer_position()?.to_logical(window.scale_factor()?);
+        let size = window.inner_size()?.to_logical(window.scale_factor()?);
+
+        Ok(WindowPosition {
+            x: position.x,
+            y: position.y,
+            width: size.width,
+            height: size.height,
+        })
+    }
 }

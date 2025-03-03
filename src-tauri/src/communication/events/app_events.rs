@@ -1,5 +1,5 @@
 // file_path: src/communication/events/app_events.rs
-use log::{error, info};
+use log::{error, info, warn};
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -11,18 +11,18 @@ use crate::logic::window_manager::operations::{
 
 use crate::logic::window_manager::models::{WindowConfig, WindowManagerState, WindowPosition};
 
-// Simple state for tracking window focus
+// 窗口焦点状态追踪结构体
 pub struct WindowFocusState {
-    control_focused: bool,
-    quick_windows_focused: bool,
-    quick_window_labels: HashSet<String>,
-    last_focus_change: Instant,
-    hide_pending: bool,
+    control_focused: bool,                // 控制窗口是否拥有焦点
+    quick_windows_focused: bool,          // 快速窗口是否拥有焦点
+    quick_window_labels: HashSet<String>, // 已注册的快速窗口标签集合
+    last_focus_change: Instant,           // 上次焦点变化时间点
+    hide_pending: bool,                   // 是否等待隐藏
 }
 
 impl WindowFocusState {
     pub fn new() -> Self {
-        info!("Creating new WindowFocusState");
+        info!("创建新的窗口焦点状态跟踪器");
         WindowFocusState {
             control_focused: false,
             quick_windows_focused: false,
@@ -32,81 +32,78 @@ impl WindowFocusState {
         }
     }
 
-    // Register a quick window label
+    // 注册快速窗口标签
     pub fn register_quick_window(&mut self, label: String) {
         self.quick_window_labels.insert(label);
     }
 
-    // Update focus state for control window
+    // 更新控制窗口的焦点状态
     pub fn set_control_focused(&mut self, focused: bool) {
         self.control_focused = focused;
         self.last_focus_change = Instant::now();
     }
 
-    // Update focus state for quick windows
+    // 更新快速窗口的焦点状态
     pub fn set_quick_window_focused(&mut self, focused: bool) {
         self.quick_windows_focused = focused;
         self.last_focus_change = Instant::now();
     }
 
-    // Set hide pending flag
+    // 设置隐藏等待标志
     pub fn set_hide_pending(&mut self, pending: bool) {
         self.hide_pending = pending;
     }
 
-    // Check if all windows are unfocused
+    // 检查所有窗口是否都失去焦点
     pub fn all_windows_unfocused(&self) -> bool {
         !self.control_focused && !self.quick_windows_focused
     }
 
-    // Get quick window labels
+    // 获取所有快速窗口标签
     pub fn get_quick_window_labels(&self) -> &HashSet<String> {
         &self.quick_window_labels
     }
 
-    // Check if hide is pending
+    // 检查是否有隐藏操作等待执行
     pub fn is_hide_pending(&self) -> bool {
         self.hide_pending
     }
 
-    // Check if time since last focus change is enough
+    // 计算自上次焦点变化经过的时间
     pub fn time_since_last_focus_change(&self) -> Duration {
         Instant::now().duration_since(self.last_focus_change)
     }
 }
 
-// Main event handler for application events
+// 应用程序事件主处理函数
 pub fn handle_app_events<R: Runtime>(app_handle: &AppHandle<R>, event: RunEvent) {
-    match event {
-        RunEvent::WindowEvent { label, event, .. } => {
-            let app_handle_arc = Arc::new(app_handle.clone());
+    if let RunEvent::WindowEvent { label, event, .. } = event {
+        let app_handle_arc = Arc::new(app_handle.clone());
 
-            match event {
-                WindowEvent::Moved(position) => {
-                    handle_window_moved(&app_handle_arc, &label, position);
-                }
-                WindowEvent::Resized(size) => {
-                    handle_window_resized(&app_handle_arc, &label, size);
-                }
-                WindowEvent::Focused(focused) => {
-                    handle_window_focused(&app_handle_arc, &label, focused);
-                }
-                _ => {}
+        match event {
+            WindowEvent::Moved(position) => {
+                handle_window_moved(&app_handle_arc, &label, position);
             }
+            WindowEvent::Resized(size) => {
+                handle_window_resized(&app_handle_arc, &label, size);
+            }
+            WindowEvent::Focused(focused) => {
+                handle_window_focused(&app_handle_arc, &label, focused);
+            }
+            _ => {}
         }
-        _ => {}
     }
 }
 
-// Initialize event system and state
+// 初始化事件系统及状态
 pub fn init_event_system<R: Runtime>(app_handle: &AppHandle<R>) {
-    info!("Initializing event system");
-    // Create and register focus state
+    info!("初始化事件系统");
+    // 创建并注册焦点状态
     let focus_state = WindowFocusState::new();
     app_handle.manage(Arc::new(Mutex::new(focus_state)));
 }
 
-// Handle window moved events
+// 处理窗口移动事件
 fn handle_window_moved<R: Runtime>(
     app_handle: &Arc<AppHandle<R>>,
     label: &str,
@@ -116,17 +113,26 @@ fn handle_window_moved<R: Runtime>(
     let label_clone = label.to_string();
 
     tauri::async_runtime::spawn(async move {
-        if label_clone == "control" {
-            // When control window is moved, sync positions with active quick window
-            let _ = sync_positions_after_control_moved(&app_handle_clone);
-        } else if label_clone.starts_with("quick_") {
-            // When quick window is moved, update control window position
-            let _ = position_control_window_below_quick(&app_handle_clone, &label_clone);
+        match label_clone.as_str() {
+            "control" => {
+                // 当控制窗口移动时，同步活动快速窗口的位置
+                if let Err(e) = sync_positions_after_control_moved(&app_handle_clone) {
+                    warn!("同步控制窗口位置失败: {}", e);
+                }
+            }
+            label if label.starts_with("quick_") => {
+                // 当快速窗口移动时，更新控制窗口位置
+                if let Err(e) = position_control_window_below_quick(&app_handle_clone, &label_clone)
+                {
+                    warn!("定位控制窗口失败: {}", e);
+                }
+            }
+            _ => {} // 忽略其他窗口
         }
     });
 }
 
-// Handle window resized events
+// 处理窗口大小调整事件
 fn handle_window_resized<R: Runtime>(
     app_handle: &Arc<AppHandle<R>>,
     label: &str,
@@ -136,97 +142,133 @@ fn handle_window_resized<R: Runtime>(
     let label_clone = label.to_string();
 
     tauri::async_runtime::spawn(async move {
-        if label_clone == "control" {
-            // When control window is resized, sync positions with active quick window
-            let _ = sync_positions_after_control_moved(&app_handle_clone);
-        } else if label_clone.starts_with("quick_") {
-            // When quick window is resized, update control window position
-            let _ = position_control_window_below_quick(&app_handle_clone, &label_clone);
+        match label_clone.as_str() {
+            "control" => {
+                // 当控制窗口大小改变时，同步活动快速窗口位置
+                if let Err(e) = sync_positions_after_control_moved(&app_handle_clone) {
+                    warn!("调整大小后同步位置失败: {}", e);
+                }
+            }
+            label if label.starts_with("quick_") => {
+                // 当快速窗口大小改变时，更新控制窗口位置
+                if let Err(e) = position_control_window_below_quick(&app_handle_clone, &label_clone)
+                {
+                    warn!("调整大小后更新控制窗口位置失败: {}", e);
+                }
+            }
+            _ => {} // 忽略其他窗口
         }
     });
 }
 
-// Handle window focused events
+// 处理窗口焦点事件
 fn handle_window_focused<R: Runtime>(app_handle: &Arc<AppHandle<R>>, label: &str, focused: bool) {
     let app_handle_clone = app_handle.clone();
     let label_clone = label.to_string();
 
     tauri::async_runtime::spawn(async move {
-        // Update focus state
-        if let Some(focus_state_arc) = app_handle_clone.try_state::<Arc<Mutex<WindowFocusState>>>()
+        // 获取焦点状态
+        let focus_state_arc = match app_handle_clone.try_state::<Arc<Mutex<WindowFocusState>>>() {
+            Some(state) => state,
+            None => {
+                error!("无法获取窗口焦点状态");
+                return;
+            }
+        };
+
+        let mut focus_state_updated = false;
+
+        // 更新焦点状态
         {
-            let mut focus_state_updated = false;
-
-            {
-                if let Ok(mut focus_state) = focus_state_arc.lock() {
-                    // Register quick window if it's new
-                    if label_clone.starts_with("quick_") {
-                        focus_state.register_quick_window(label_clone.clone());
-                    }
-
-                    // Update focus state based on window type
-                    if label_clone == "control" {
-                        focus_state.set_control_focused(focused);
-                    } else if label_clone.starts_with("quick_") {
-                        focus_state.set_quick_window_focused(focused);
-                    }
-
-                    // Set hide pending flag if window loses focus
-                    if !focused {
-                        focus_state.set_hide_pending(true);
-                    } else {
-                        focus_state.set_hide_pending(false);
-                    }
-
-                    // Check if we need to verify window visibility status
-                    focus_state_updated = !focused;
+            let mut focus_state = match focus_state_arc.lock() {
+                Ok(state) => state,
+                Err(e) => {
+                    error!("无法锁定焦点状态: {}", e);
+                    return;
                 }
+            };
+
+            // 如果是快速窗口，注册它
+            if label_clone.starts_with("quick_") {
+                focus_state.register_quick_window(label_clone.clone());
             }
 
-            // If a window has lost focus, schedule a check to see if all windows should be hidden
-            if focus_state_updated {
-                tokio::time::sleep(Duration::from_millis(150)).await;
+            // 根据窗口类型更新焦点状态
+            match label_clone.as_str() {
+                "control" => focus_state.set_control_focused(focused),
+                label if label.starts_with("quick_") => {
+                    focus_state.set_quick_window_focused(focused)
+                }
+                _ => {} // 忽略其他窗口
+            }
 
-                // Check if all windows are unfocused and hide is pending
-                let should_hide = {
-                    if let Ok(focus_state) = focus_state_arc.lock() {
-                        focus_state.time_since_last_focus_change() >= Duration::from_millis(100)
-                            && focus_state.is_hide_pending()
-                            && focus_state.all_windows_unfocused()
-                    } else {
+            // 更新隐藏标志
+            focus_state.set_hide_pending(!focused);
+
+            // 窗口失去焦点时，标记需要检查状态
+            focus_state_updated = !focused;
+        }
+
+        // 如果窗口失去焦点，延时检查是否应该隐藏所有窗口
+        if focus_state_updated {
+            // 延迟一小段时间再检查，避免焦点切换冲突
+            tokio::time::sleep(Duration::from_millis(150)).await;
+
+            // 检查是否所有窗口都失去焦点且等待隐藏
+            let should_hide = {
+                match focus_state_arc.lock() {
+                    Ok(state) => {
+                        state.time_since_last_focus_change() >= Duration::from_millis(100)
+                            && state.is_hide_pending()
+                            && state.all_windows_unfocused()
+                    }
+                    Err(e) => {
+                        error!("检查隐藏条件时无法锁定焦点状态: {}", e);
                         false
                     }
-                };
+                }
+            };
 
-                if should_hide {
-                    // Hide all managed windows
-                    hide_all_managed_windows(&app_handle_clone).await;
+            if should_hide {
+                // 隐藏所有管理的窗口
+                hide_all_managed_windows(&app_handle_clone).await;
 
-                    // Reset hide pending flag
-                    if let Ok(mut focus_state) = focus_state_arc.lock() {
-                        focus_state.set_hide_pending(false);
-                    }
+                // 重置隐藏等待标志
+                if let Ok(mut focus_state) = focus_state_arc.lock() {
+                    focus_state.set_hide_pending(false);
                 }
             }
         }
     });
 }
 
-// Hide all managed windows when they all lose focus
+// 当所有窗口都失去焦点时隐藏所有管理的窗口
 async fn hide_all_managed_windows<R: Runtime>(app_handle: &AppHandle<R>) {
-    info!("Hiding all managed windows");
+    info!("隐藏所有管理的窗口");
 
-    // Hide control window
+    // 隐藏控制窗口
     if let Some(window) = app_handle.get_webview_window("control") {
-        let _ = window.hide();
+        if let Err(e) = window.hide() {
+            warn!("无法隐藏控制窗口: {}", e);
+        }
     }
 
-    // Hide all quick windows
+    // 隐藏所有快速窗口
     if let Some(focus_state_arc) = app_handle.try_state::<Arc<Mutex<WindowFocusState>>>() {
-        if let Ok(focus_state) = focus_state_arc.lock() {
-            for label in focus_state.get_quick_window_labels() {
-                if let Some(window) = app_handle.get_webview_window(label) {
-                    let _ = window.hide();
+        let quick_window_labels = {
+            match focus_state_arc.lock() {
+                Ok(state) => state.get_quick_window_labels().clone(),
+                Err(e) => {
+                    error!("获取快速窗口标签时无法锁定焦点状态: {}", e);
+                    return;
+                }
+            }
+        };
+
+        for label in quick_window_labels {
+            if let Some(window) = app_handle.get_webview_window(&label) {
+                if let Err(e) = window.hide() {
+                    warn!("无法隐藏窗口 {}: {}", label, e);
                 }
             }
         }

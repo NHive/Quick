@@ -9,6 +9,12 @@ use tauri::TitleBarStyle;
 use super::models::{WindowConfig, WindowInfo, WindowManagerState, WindowPosition, WindowStatus};
 use super::utils::{generate_window_label, get_window_position_and_size};
 
+#[cfg(target_os = "macos")]
+use tauri::LogicalPosition;
+
+#[cfg(not(target_os = "macos"))]
+use tauri::PhysicalPosition;
+
 /// 配置窗口列表
 pub fn configure_windows<R: Runtime>(
     app: &AppHandle<R>,
@@ -296,13 +302,27 @@ pub fn position_control_window_below_quick<R: Runtime>(
     };
 
     // 计算新位置 - 在快速窗口下方居中
-    // 控制窗口的中心与快速窗口的中心对齐
     let control_x = quick_position.x + (quick_position.width - control_position.width) / 2.0;
     let control_y = quick_position.y + quick_position.height + 10.0; // 10px间隙
 
     // 设置控制窗口位置
     if let Some(control_window) = app.get_webview_window("control") {
-        let _ = control_window.set_position(LogicalPosition::new(control_x, control_y));
+        #[cfg(target_os = "macos")]
+        {
+            // macOS 使用逻辑坐标
+            let _ = control_window.set_position(tauri::LogicalPosition::new(control_x, control_y));
+        }
+
+        #[cfg(not(target_os = "macos"))]
+        {
+            // Windows 使用物理坐标
+            if let Ok(scale_factor) = control_window.scale_factor() {
+                let physical_x = control_x * scale_factor;
+                let physical_y = control_y * scale_factor;
+                let _ = control_window
+                    .set_position(tauri::PhysicalPosition::new(physical_x, physical_y));
+            }
+        }
 
         // 更新窗口管理器位置
         let updated_position = WindowPosition {
@@ -345,7 +365,22 @@ pub fn position_quick_window_above_control<R: Runtime>(
 
     // 设置快速窗口位置
     if let Some(quick_window) = app.get_webview_window(quick_window_label) {
-        let _ = quick_window.set_position(LogicalPosition::new(quick_x, quick_y));
+        #[cfg(target_os = "macos")]
+        {
+            // macOS 使用逻辑坐标
+            let _ = quick_window.set_position(tauri::LogicalPosition::new(quick_x, quick_y));
+        }
+
+        #[cfg(not(target_os = "macos"))]
+        {
+            // Windows 使用物理坐标
+            if let Ok(scale_factor) = quick_window.scale_factor() {
+                let physical_x = quick_x * scale_factor;
+                let physical_y = quick_y * scale_factor;
+                let _ =
+                    quick_window.set_position(tauri::PhysicalPosition::new(physical_x, physical_y));
+            }
+        }
 
         // 更新窗口管理器位置
         let updated_position = WindowPosition {
