@@ -18,6 +18,7 @@ use window::window_manager::init_window_manager;
 use communication::events::app_events::handle_app_events;
 use communication::events::global_shortcut::global_shortcuts_handle;
 
+#[cfg(debug_assertions)]
 use communication::api::start_server;
 
 use logic::tools::path::AppPath;
@@ -94,7 +95,8 @@ pub fn run() {
 
     use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut};
 
-    start_server(app.app_handle().clone());
+    #[cfg(debug_assertions)]
+    let _ = start_server(app.app_handle().clone());
 
     let open_control_window = Shortcut::new(Some(Modifiers::ALT), Code::KeyC);
     app.global_shortcut().register(open_control_window).unwrap();

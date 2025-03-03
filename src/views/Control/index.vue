@@ -89,23 +89,23 @@ onMounted(async () => {
   try {
     const window = getCurrentWebviewWindow();
 
-    // 监听窗口显示事件
-    const unlisten = await window.onFocusChanged(() => {
-      console.log('Window is shown, opening link window');
-      openWindowByLink();
-    });
+    // // 监听窗口显示事件
+    // const unlisten = await window.onFocusChanged(() => {
+    //   console.log('Window is shown, opening link window');
+    //   openWindowByLink();
+    // });
 
     // 清理函数
     onUnmounted(() => {
       unlisten();
     });
 
-    // 如果窗口已经是可见状态，也调用一次
-    const isVisible = await window.isVisible();
-    if (isVisible) {
-      console.log('Window is already visible, opening link window');
-      openWindowByLink();
-    }
+    // // 如果窗口已经是可见状态，也调用一次
+    // const isVisible = await window.isVisible();
+    // if (isVisible) {
+    //   console.log('Window is already visible, opening link window');
+    //   openWindowByLink();
+    // }
 
     // 配置窗口列表并获取窗口信息
     await configureWindows();
@@ -128,9 +128,9 @@ onMounted(async () => {
 
 .controlBox {
   list-style: none;
-  padding: 15px 10px;
+  padding: 10px 15px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row; /* 由纵向改为横向 */
   justify-content: flex-start;
   align-items: center;
 
@@ -143,7 +143,8 @@ onMounted(async () => {
     width: 30px;
     height: 30px;
     cursor: pointer;
-    margin-bottom: 20px;
+    margin-right: 20px; /* 由下边距改为右边距 */
+    margin-bottom: 0; /* 移除下边距 */
     color: #888;
   }
 

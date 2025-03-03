@@ -14,11 +14,11 @@
       {
         "label": "control",
         "fullscreen": false,
-        "height": 260,
+        "height": 50,
         "resizable": false,
         "title": "quick",
         "decorations": false,
-        "width": 50,
+        "width": 800,
         "titleBarStyle": "Overlay",
         "visible": true,
         "skipTaskbar": true,

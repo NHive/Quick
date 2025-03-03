@@ -144,44 +144,6 @@ impl WindowManager {
         self.active_window = Some(label);
     }
 
-    // 删除窗口
-    pub fn remove_window(&mut self, label: &str) {
-        self.windows.remove(label);
-
-        // 如果删除的是当前激活窗口，更新激活窗口
-        if let Some(active_label) = &self.active_window {
-            if active_label == label {
-                // 尝试切换到上一个激活窗口
-                if let Some(prev_label) = &self.previous_active_window {
-                    if self.windows.contains_key(prev_label) {
-                        self.active_window = Some(prev_label.clone());
-
-                        // 更新新的激活窗口状态
-                        if let Some(window) = self.windows.get_mut(prev_label) {
-                            window.status = WindowStatus::Foreground;
-                        }
-                        return;
-                    }
-                }
-
-                // 如果没有上一个激活窗口或已不存在，选择任意一个窗口
-                self.active_window = self.windows.keys().next().cloned();
-
-                // 更新新的激活窗口状态
-                if let Some(new_active) = &self.active_window {
-                    if let Some(window) = self.windows.get_mut(new_active) {
-                        window.status = WindowStatus::Foreground;
-                    }
-                }
-            } else if let Some(prev_label) = &self.previous_active_window {
-                // 如果删除的是上一个激活窗口，更新上一个激活窗口引用
-                if prev_label == label {
-                    self.previous_active_window = None;
-                }
-            }
-        }
-    }
-
     // 切换到指定窗口
     pub fn switch_to_window(&mut self, label: &str) -> bool {
         if !self.windows.contains_key(label) {

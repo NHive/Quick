@@ -34,16 +34,6 @@ impl WindowFocusState {
     }
 }
 
-// 注册一个新的快速窗口标签以进行跟踪
-pub fn register_quick_window_label<R: Runtime>(app_handle: &AppHandle<R>, label: String) {
-    info!("注册快速窗口标签: {}", label);
-    if let Some(focus_state) = app_handle.try_state::<WindowFocusState>() {
-        if let Ok(mut labels) = focus_state.quick_window_labels.lock() {
-            labels.insert(label);
-        }
-    }
-}
-
 // 应用程序事件的主事件处理器
 pub fn handle_app_events<R: Runtime>(app_handle: &AppHandle<R>, event: RunEvent) {
     match event {
@@ -274,54 +264,4 @@ async fn hide_all_managed_windows<R: Runtime>(app_handle: &AppHandle<R>) {
             }
         }
     }
-}
-
-// 函数用于将焦点窗口置于前台或显示
-pub fn show_or_focus_window<R: Runtime>(
-    app_handle: &AppHandle<R>,
-    label: &str,
-) -> Result<(), tauri::Error> {
-    info!("显示或聚焦窗口: {}", label);
-    if let Some(window) = app_handle.get_webview_window(label) {
-        window.show()?;
-        window.set_focus()?;
-    }
-    Ok(())
-}
-
-// 函数用于切换窗口的可见性
-pub fn toggle_window_visibility<R: Runtime>(
-    app_handle: &AppHandle<R>,
-    label: &str,
-) -> Result<(), tauri::Error> {
-    info!("切换窗口可见性: {}", label);
-    if let Some(window) = app_handle.get_webview_window(label) {
-        if window.is_visible()? {
-            window.hide()?;
-        } else {
-            window.show()?;
-            window.set_focus()?;
-        }
-    }
-    Ok(())
-}
-
-// 检查是否有任何管理的窗口处于焦点
-pub fn is_any_window_focused<R: Runtime>(app_handle: &AppHandle<R>) -> bool {
-    info!("检查是否有窗口处于焦点");
-    if let Some(focus_state) = app_handle.try_state::<WindowFocusState>() {
-        let control_focused = match focus_state.control_focused.lock() {
-            Ok(f) => *f,
-            Err(_) => false,
-        };
-
-        let quick_focused = match focus_state.quick_windows_focused.lock() {
-            Ok(f) => *f,
-            Err(_) => false,
-        };
-
-        return control_focused || quick_focused;
-    }
-
-    false
 }

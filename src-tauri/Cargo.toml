@@ -67,7 +67,7 @@ cocoa = "0.24"
 core-foundation = "0.9"
 core-foundation-sys = "0.8"
 objc_id = "0.1"
-tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2" }
+# tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2" }
 
 
 # 非移动端插件

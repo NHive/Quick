@@ -30,7 +30,6 @@ dependencies = [
  "sha2",
  "tauri",
  "tauri-build",
- "tauri-nspanel",
  "tauri-plugin-autostart",
  "tauri-plugin-dialog",
  "tauri-plugin-fs",
@@ -5320,22 +5319,6 @@ dependencies = [
  "syn 2.0.98",
  "tauri-codegen",
  "tauri-utils",
-]
-
-[[package]]
-name = "tauri-nspanel"
-version = "2.0.1"
-source = "git+https://github.com/ahkohd/tauri-nspanel?branch=v2#4cb2d252f565fb3c7352b379a6b88b1bd63bbed8"
-dependencies = [
- "bitflags 2.8.0",
- "block",
- "cocoa 0.26.0",
- "core-foundation 0.10.0",
- "core-graphics 0.24.0",
- "objc",
- "objc-foundation",
- "objc_id",
- "tauri",
 ]
 
 [[package]]
