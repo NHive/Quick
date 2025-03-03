@@ -2,7 +2,9 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": ["*"],
+  "windows": [
+    "*"
+  ],
   "permissions": [
     "core:default",
     "fs:allow-read-file",
@@ -71,13 +73,17 @@
     {
       "identifier": "http:default",
       "local": true,
-      "windows": ["main"],
+      "windows": [
+        "main"
+      ],
       "allow": [
         {
           "url": "*"
         }
       ]
     },
-    "dialog:default"
+    "dialog:default",
+    "log:default",
+    "log:default"
   ]
 }

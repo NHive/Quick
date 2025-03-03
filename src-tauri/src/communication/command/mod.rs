@@ -1,3 +1,4 @@
+// file_path: src/communication/command/mod.rs
 mod window;
 
 use tauri::generate_handler;

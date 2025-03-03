@@ -1,3 +1,4 @@
+// file_path: src/infrastructure/error.rs
 use serde::Serialize;
 use std::io;
 use thiserror::Error;

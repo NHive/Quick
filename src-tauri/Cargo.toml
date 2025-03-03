@@ -30,6 +30,7 @@ tauri-plugin-notification = "2"    # 通知
 tauri-plugin-os = "2"              # 系统
 tauri-plugin-http = "2"            # http
 tauri-plugin-dialog = "2"          # 对话框
+tauri-plugin-log = "2"             # 日志
 
 # 工具库
 tokio = { version = "1", features = ["full"] }
@@ -44,11 +45,19 @@ chrono = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_derive = "1"
+directories = "6"
+
 
 # 系统交互
 mouse_position = "0.1.3"
 enigo = "0.2.1"
 active-win-pos-rs = "0.8"
+
+# Web 框架
+actix-http = "3"
+actix-web = "4"
+actix-cors = "0.6"
+listenfd = "1"
 
 
 # macos

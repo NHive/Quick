@@ -1,3 +1,4 @@
+// file_path: src/window/setting.rs
 #[cfg(target_os = "macos")]
 use tauri::TitleBarStyle;
 

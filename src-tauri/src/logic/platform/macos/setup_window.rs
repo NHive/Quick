@@ -1,3 +1,4 @@
+// file_path: src/logic/platform/macos/setup_window.rs
 use objc::runtime::{Object, NO, YES};
 use objc::{class, msg_send, sel, sel_impl};
 use tauri::WebviewWindow;

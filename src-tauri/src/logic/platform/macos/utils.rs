@@ -1,3 +1,4 @@
+// file_path: src/logic/platform/macos/utils.rs
 use cocoa::base::{id, nil, BOOL};
 use core_foundation::base::TCFType;
 use core_foundation_sys::dictionary::CFDictionaryRef;

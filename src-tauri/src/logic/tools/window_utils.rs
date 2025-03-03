@@ -1,3 +1,4 @@
+// file_path: src/logic/tools/window_utils.rs
 use tauri;
 use tauri::{
     AppHandle, LogicalPosition, LogicalSize, Manager, PhysicalPosition, PhysicalSize, Runtime,

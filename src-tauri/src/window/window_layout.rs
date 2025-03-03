@@ -1,3 +1,4 @@
+// file_path: src/window/window_layout.rs
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Manager, Runtime};

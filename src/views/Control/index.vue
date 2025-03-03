@@ -18,11 +18,52 @@
     </ul>
   </div>
 </template>
+
+
 <script setup lang="ts">
 import { icons } from '@/utils/svg';
 import { invoke } from "@tauri-apps/api/core";
 import { onMounted, onUnmounted } from 'vue';
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
+
+// 定义窗口配置
+const windowConfigs = [
+  { title: "deepseek", url: "https://chat.deepseek.com" },
+  { title: "doubao", url: "https://www.doubao.com/chat/" }
+];
+
+
+// 调用 cmd_configure_windows 命令
+const configureWindows = async () => {
+  try {
+    await invoke('cmd_configure_windows', { configs: windowConfigs });
+    console.log('Windows configured successfully');
+    await getAllWindows();
+    await getActiveWindow();
+  } catch (error) {
+    console.error('Failed to configure windows:', error);
+  }
+};
+
+// 获取所有窗口信息
+const getAllWindows = async () => {
+  try {
+    const windows = await invoke('cmd_get_all_windows');
+    console.log('All windows:', windows);
+  } catch (error) {
+    console.error('Failed to get all windows:', error);
+  }
+};
+
+// 获取活动窗口信息
+const getActiveWindow = async () => {
+  try {
+    const activeWindow = await invoke('cmd_get_active_window');
+    console.log('Active window:', activeWindow);
+  } catch (error) {
+    console.error('Failed to get active window:', error);
+  }
+};
 
 const openSettingWindow = async () => {
   try {
@@ -65,12 +106,17 @@ onMounted(async () => {
       console.log('Window is already visible, opening link window');
       openWindowByLink();
     }
+
+    // 配置窗口列表并获取窗口信息
+    await configureWindows();
+
   } catch (error) {
     console.error('Error setting up window event listener:', error);
   }
 });
 
 </script>
+
 <style lang="scss" scoped>
 .container {
   width: 100%;

@@ -1,4 +1,5 @@
-use super::quick_window::show_previous_window;
+// file_path: src/window/control.rs
+// use super::quick_window::show_previous_window;
 use crate::CONTROL_WINDOW_LABEL;
 use tauri::{self, Error, Manager, Runtime};
 
@@ -7,7 +8,7 @@ pub fn show_control_window<R: Runtime>(app: &tauri::AppHandle<R>) -> Result<(), 
         return Ok(());
     };
 
-    show_previous_window(app)?;
+    // show_previous_window(app)?;
     control_window.show()?;
     control_window.set_focus()?;
     Ok(())

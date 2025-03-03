@@ -1,3 +1,4 @@
+// file_path: src/communication/events/global_shortcut.rs
 use tauri::{self};
 use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutEvent, ShortcutState};
 

@@ -1,319 +1,327 @@
+// file_path: src/communication/events/app_events.rs
+use log::{error, info};
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, RunEvent, Runtime, WindowEvent};
+use tokio::sync::mpsc;
 
-use crate::logic::tools::window_utils::WindowUtils;
-use crate::window::window_layout::{WindowLayoutManager, WindowPositionTrackerState};
+use crate::window::window_manager::{
+    get_window_position_and_size, WindowManagerMessage, WindowManagerState,
+};
 
+// 跟踪所有窗口的焦点状态
 pub struct WindowFocusState {
-    pub control_focused: Mutex<bool>,
-    pub quick_windows_focused: Mutex<bool>,
+    control_focused: Mutex<bool>,
+    quick_windows_focused: Mutex<bool>,
     quick_window_labels: Mutex<HashSet<String>>,
-    last_focus_change: Mutex<Instant>, // 焦点切换时间追踪
-    hide_pending: Mutex<bool>,         // 挂起的隐藏操作标记
+    last_focus_change: Mutex<Instant>,
+    hide_pending: Mutex<bool>,
+    tx: mpsc::Sender<WindowManagerMessage>,
 }
 
-impl Default for WindowFocusState {
-    fn default() -> Self {
+impl WindowFocusState {
+    pub fn new(tx: mpsc::Sender<WindowManagerMessage>) -> Self {
+        info!("创建新的 WindowFocusState");
         WindowFocusState {
             control_focused: Mutex::new(false),
             quick_windows_focused: Mutex::new(false),
             quick_window_labels: Mutex::new(HashSet::new()),
-            last_focus_change: Mutex::new(Instant::now()), // 手动初始化为当前时间
+            last_focus_change: Mutex::new(Instant::now()),
             hide_pending: Mutex::new(false),
+            tx,
         }
     }
 }
 
-// 注册 quick 窗口 label
+// 注册一个新的快速窗口标签以进行跟踪
 pub fn register_quick_window_label<R: Runtime>(app_handle: &AppHandle<R>, label: String) {
-    let Some(focus_state) = app_handle.try_state::<WindowFocusState>() else {
-        eprintln!("WindowFocusState not initialized!");
-        return;
-    };
-
-    let mut labels = focus_state.quick_window_labels.lock().unwrap();
-    labels.insert(label);
-}
-
-// 处理应用事件
-pub fn handle_app_events<R: Runtime>(app_handle: &AppHandle<R>, event: RunEvent) {
-    let app_handle_clone = Arc::new(app_handle.clone());
-    if let RunEvent::WindowEvent { label, event, .. } = event { match event {
-        WindowEvent::Moved(position) => handle_move_event(&app_handle_clone, &label, position),
-        WindowEvent::Resized(size) => handle_resize_event(&app_handle_clone, &label, size),
-        WindowEvent::Focused(focused) => handle_focus_event(&app_handle_clone, &label, focused),
-        _ => {}
-    } }
-}
-
-// 同步 quick 窗口位置
-pub fn sync_quick_windows_position<R: Runtime>(app_handle: &AppHandle<R>) {
-    let Some(focus_state) = app_handle.try_state::<WindowFocusState>() else {
-        eprintln!("WindowFocusState not initialized!");
-        return;
-    };
-
-    // 获取 control 窗口的位置和大小
-    let control_position = match WindowUtils::get_window_position(app_handle, "control") {
-        Ok(pos) => pos,
-        Err(_) => return,
-    };
-
-    let control_size = match WindowUtils::get_window_size(app_handle, "control") {
-        Ok(size) => size,
-        Err(_) => return,
-    };
-
-    // 获取所有 quick 窗口的 label
-    let quick_labels = match focus_state.quick_window_labels.lock() {
-        Ok(labels) => labels.clone(),
-        Err(_) => return,
-    };
-
-    // 同步所有 quick 窗口的位置
-    for label in quick_labels.iter() {
-        if let Some(window) = app_handle.get_webview_window(label) {
-            let new_x = control_position.x + control_size.width;
-            let new_y = control_position.y;
-
-            // 设置 quick 窗口位置
-            let _ = window.set_position(tauri::LogicalPosition::new(new_x, new_y));
+    info!("注册快速窗口标签: {}", label);
+    if let Some(focus_state) = app_handle.try_state::<WindowFocusState>() {
+        if let Ok(mut labels) = focus_state.quick_window_labels.lock() {
+            labels.insert(label);
         }
     }
 }
 
-// 处理移动事件
-fn handle_move_event<R: Runtime>(
+// 应用程序事件的主事件处理器
+pub fn handle_app_events<R: Runtime>(app_handle: &AppHandle<R>, event: RunEvent) {
+    match event {
+        RunEvent::WindowEvent { label, event, .. } => {
+            info!("处理窗口事件，标签: {:?}", label);
+            info!("事件详情: {:?}", event);
+
+            let app_handle_arc = Arc::new(app_handle.clone());
+
+            match event {
+                WindowEvent::Moved(position) => {
+                    info!("窗口移动: {:?}", position);
+                    handle_window_moved(&app_handle_arc, &label, position);
+                }
+                WindowEvent::Resized(size) => {
+                    info!("窗口调整大小: {:?}", size);
+                    handle_window_resized(&app_handle_arc, &label, size);
+                }
+                WindowEvent::Focused(focused) => {
+                    info!("窗口焦点: {}", focused);
+                    handle_window_focused(&app_handle_arc, &label, focused);
+                }
+                _ => {}
+            }
+        }
+        _ => {}
+    }
+}
+
+// 初始化事件系统和状态
+pub fn init_event_system<R: Runtime>(
+    app_handle: &AppHandle<R>,
+    tx: mpsc::Sender<WindowManagerMessage>,
+) {
+    info!("初始化事件系统");
+    // 创建并注册焦点状态
+    let focus_state = WindowFocusState::new(tx);
+    app_handle.manage(focus_state);
+}
+
+// 处理窗口移动事件
+fn handle_window_moved<R: Runtime>(
     app_handle: &Arc<AppHandle<R>>,
     label: &str,
     position: PhysicalPosition<i32>,
 ) {
-    let app_handle = Arc::clone(app_handle);
-    let label = label.to_string();
+    info!("处理窗口移动，标签: {}", label);
+    let app_handle_clone = app_handle.clone();
+    let label_clone = label.to_string();
 
-    std::thread::Builder::new()
-        .name("window-moved".into())
-        .spawn(move || {
-            if label == "control" {
-                if let Some(window) = app_handle.get_webview_window("control") {
-                    if let Ok(logical_position) =
-                        WindowUtils::physical_to_logical(&window, position)
+    tauri::async_runtime::spawn(async move {
+        if label_clone == "control" {
+            info!("处理控制窗口移动");
+            if let Ok(position) = get_window_position_and_size(&app_handle_clone, "control") {
+                let tx_clone = {
+                    if let Some(manager_state) = app_handle_clone.try_state::<WindowManagerState>()
                     {
-                        if let Ok(size) = WindowUtils::get_window_size(&app_handle, "control") {
-                            if let Some(state) =
-                                app_handle.try_state::<WindowPositionTrackerState>()
-                            {
-                                let mut tracker = match state.0.try_lock() {
-                                    Ok(t) => t,
-                                    Err(_) => return,
-                                };
-                                let need_sync = tracker.update_control_position(
-                                    logical_position.x,
-                                    logical_position.y,
-                                    size.width,
-                                    size.height,
-                                );
-                                if need_sync {
-                                    // 同步窗口位置
-                                    let _ = WindowLayoutManager::sync_window_positions(&app_handle);
-                                    // 同步 quick 窗口位置
-                                    sync_quick_windows_position(&app_handle);
-                                }
-                            }
-                        }
+                        let guard = manager_state.0.lock().unwrap();
+                        guard.tx.clone()
+                    } else {
+                        error!("获取 WindowManagerState 失败");
+                        return;
                     }
-                }
-            } else if let Some(window) = app_handle.get_webview_window(&label) {
-                if let Ok(logical_position) = WindowUtils::physical_to_logical(&window, position) {
-                    if let Ok(size) = WindowUtils::get_window_size(&app_handle, &label) {
-                        if let Some(state) = app_handle.try_state::<WindowPositionTrackerState>() {
-                            let mut tracker = match state.0.try_lock() {
-                                Ok(t) => t,
-                                Err(_) => return,
-                            };
-                            tracker.update_window_position(
-                                label.clone(),
-                                logical_position.x,
-                                logical_position.y,
-                                size.width,
-                                size.height,
-                            );
-                        }
-                    }
-                }
+                };
+
+                let _ = tx_clone
+                    .send(WindowManagerMessage::UpdatePosition {
+                        label: "control".to_string(),
+                        position,
+                    })
+                    .await;
+
+                let _ = tx_clone.send(WindowManagerMessage::SyncPositions).await;
             }
-        })
-        .unwrap();
+        } else {
+            info!("处理其他窗口移动，标签: {}", label_clone);
+            if let Ok(position) = get_window_position_and_size(&app_handle_clone, &label_clone) {
+                let tx_clone = {
+                    if let Some(manager_state) = app_handle_clone.try_state::<WindowManagerState>()
+                    {
+                        let guard = manager_state.0.lock().unwrap();
+                        guard.tx.clone()
+                    } else {
+                        error!("获取 WindowManagerState 失败");
+                        return;
+                    }
+                };
+
+                let _ = tx_clone
+                    .send(WindowManagerMessage::UpdatePosition {
+                        label: label_clone,
+                        position,
+                    })
+                    .await;
+            }
+        }
+    });
 }
 
-// 处理调整大小事件
-fn handle_resize_event<R: Runtime>(
+// 处理窗口调整大小事件
+fn handle_window_resized<R: Runtime>(
     app_handle: &Arc<AppHandle<R>>,
     label: &str,
     size: PhysicalSize<u32>,
 ) {
-    let app_handle = Arc::clone(app_handle);
-    let label = label.to_string();
+    info!("处理窗口调整大小，标签: {}", label);
+    let app_handle_clone = app_handle.clone();
+    let label_clone = label.to_string();
 
-    std::thread::Builder::new()
-        .name("window-resized".into())
-        .spawn(move || {
-            let window = match app_handle.get_webview_window(&label) {
-                Some(w) => w,
-                None => return,
+    tauri::async_runtime::spawn(async move {
+        if let Ok(position) = get_window_position_and_size(&app_handle_clone, &label_clone) {
+            let tx_clone = {
+                if let Some(manager_state) = app_handle_clone.try_state::<WindowManagerState>() {
+                    let guard = manager_state.0.lock().unwrap();
+                    guard.tx.clone()
+                } else {
+                    error!("获取 WindowManagerState 失败");
+                    return;
+                }
             };
 
-            if let Ok(logical_size) = WindowUtils::physical_to_logical_size(&window, size) {
-                if let Ok(position) = WindowUtils::get_window_position(&app_handle, &label) {
-                    if let Some(state) = app_handle.try_state::<WindowPositionTrackerState>() {
-                        let mut tracker = match state.0.try_lock() {
-                            Ok(t) => t,
-                            Err(_) => return,
-                        };
-                        if label == "control" {
-                            tracker.update_control_position(
-                                position.x,
-                                position.y,
-                                logical_size.width,
-                                logical_size.height,
-                            );
+            let _ = tx_clone
+                .send(WindowManagerMessage::UpdatePosition {
+                    label: label_clone.clone(),
+                    position,
+                })
+                .await;
 
-                            // 当 control 窗口大小变化时，同步 quick 窗口的位置
-                            sync_quick_windows_position(&app_handle);
-                        } else {
-                            tracker.update_window_position(
-                                label,
-                                position.x,
-                                position.y,
-                                logical_size.width,
-                                logical_size.height,
-                            );
-                        }
-                    }
-                }
+            if label_clone == "control" {
+                let _ = tx_clone.send(WindowManagerMessage::SyncPositions).await;
             }
-        })
-        .unwrap();
+        }
+    });
 }
 
-// 处理焦点事件
-fn handle_focus_event<R: Runtime>(app_handle: &Arc<AppHandle<R>>, label: &str, focused: bool) {
-    let app_handle = Arc::clone(app_handle);
-    let label = label.to_string();
+// 处理窗口焦点事件
+fn handle_window_focused<R: Runtime>(app_handle: &Arc<AppHandle<R>>, label: &str, focused: bool) {
+    info!("处理窗口焦点，标签: {}, 焦点: {}", label, focused);
+    let app_handle_clone = app_handle.clone();
+    let label_clone = label.to_string();
 
-    std::thread::Builder::new()
-        .name("window-focused".into())
-        .spawn(move || {
-            let Some(focus_state) = app_handle.try_state::<WindowFocusState>() else {
-                eprintln!("WindowFocusState not initialized!");
-                return;
-            };
-
-            // 更新最后焦点变化时间
-            {
-                let mut last_change = focus_state.last_focus_change.lock().unwrap();
+    tauri::async_runtime::spawn(async move {
+        if let Some(focus_state) = app_handle_clone.try_state::<WindowFocusState>() {
+            if let Ok(mut last_change) = focus_state.last_focus_change.lock() {
                 *last_change = Instant::now();
             }
 
-            // 更新窗口焦点状态
-            if label == "control" {
+            if label_clone == "control" {
                 if let Ok(mut control_focused) = focus_state.control_focused.lock() {
                     *control_focused = focused;
                 }
-            } else if label.starts_with("quick_") {
+            } else if label_clone.starts_with("quick_") {
                 if let Ok(mut quick_focused) = focus_state.quick_windows_focused.lock() {
                     *quick_focused = focused;
                 }
             }
 
             if !focused {
-                // 设置延迟隐藏
-                {
-                    let mut hide_pending = focus_state.hide_pending.lock().unwrap();
+                if let Ok(mut hide_pending) = focus_state.hide_pending.lock() {
                     *hide_pending = true;
                 }
 
-                // 创建一个新的应用句柄克隆用于延迟执行
-                let app_handle_clone = app_handle.clone();
+                let app_handle_async = app_handle_clone.clone();
 
-                // 延迟执行隐藏操作，给窗口切换留出时间
-                std::thread::Builder::new()
-                    .name("window-focus-delay".into())
-                    .spawn(move || {
-                        // 等待一个短暂的时间，给焦点切换预留时间
-                        std::thread::sleep(Duration::from_millis(150));
+                tauri::async_runtime::spawn(async move {
+                    tokio::time::sleep(Duration::from_millis(150)).await;
 
-                        let Some(focus_state) = app_handle_clone.try_state::<WindowFocusState>()
-                        else {
-                            return;
-                        };
-
-                        // 检查是否有新的焦点事件发生
+                    if let Some(focus_state) = app_handle_async.try_state::<WindowFocusState>() {
                         let now = Instant::now();
                         let should_check = {
-                            let last_change = focus_state.last_focus_change.lock().unwrap();
-                            now.duration_since(*last_change) >= Duration::from_millis(100)
+                            if let Ok(last_change) = focus_state.last_focus_change.lock() {
+                                now.duration_since(*last_change) >= Duration::from_millis(100)
+                            } else {
+                                false
+                            }
                         };
 
                         if should_check {
-                            let hide_pending = {
-                                let pending = focus_state.hide_pending.lock().unwrap();
-                                *pending
+                            let hide_pending = match focus_state.hide_pending.lock() {
+                                Ok(pending) => *pending,
+                                Err(_) => false,
                             };
 
                             if hide_pending {
                                 let control_focused = match focus_state.control_focused.lock() {
                                     Ok(f) => *f,
-                                    Err(_) => return,
-                                };
-                                let quick_focused = match focus_state.quick_windows_focused.lock() {
-                                    Ok(f) => *f,
-                                    Err(_) => return,
+                                    Err(_) => false,
                                 };
 
-                                // 只有在两个窗口都没有焦点的情况下才隐藏
+                                let quick_focused = match focus_state.quick_windows_focused.lock() {
+                                    Ok(f) => *f,
+                                    Err(_) => false,
+                                };
+
                                 if !control_focused && !quick_focused {
-                                    // 重置挂起标记
-                                    {
-                                        let mut pending = focus_state.hide_pending.lock().unwrap();
+                                    if let Ok(mut pending) = focus_state.hide_pending.lock() {
                                         *pending = false;
                                     }
-                                    hide_control_and_quick_windows(&app_handle_clone);
+
+                                    hide_all_managed_windows(&app_handle_async).await;
                                 }
                             }
                         }
-                    })
-                    .unwrap();
+                    }
+                });
             } else {
-                // 如果窗口获得焦点，取消挂起的隐藏操作
-                let mut hide_pending = focus_state.hide_pending.lock().unwrap();
-                *hide_pending = false;
+                if let Ok(mut hide_pending) = focus_state.hide_pending.lock() {
+                    *hide_pending = false;
+                }
             }
-        })
-        .unwrap();
+        }
+    });
 }
 
-// 隐藏所有相关窗口
-fn hide_control_and_quick_windows<R: Runtime>(app_handle: &AppHandle<R>) {
+// 当没有焦点时隐藏控制和快速窗口
+async fn hide_all_managed_windows<R: Runtime>(app_handle: &AppHandle<R>) {
+    info!("隐藏所有管理的窗口");
     if let Some(window) = app_handle.get_webview_window("control") {
         let _ = window.hide();
     }
 
-    let Some(focus_state) = app_handle.try_state::<WindowFocusState>() else {
-        eprintln!("WindowFocusState not initialized!");
-        return;
-    };
-
-    let labels = match focus_state.quick_window_labels.lock() {
-        Ok(l) => l,
-        Err(_) => return,
-    };
-
-    for label in labels.iter() {
-        if let Some(window) = app_handle.get_webview_window(label) {
-            let _ = window.hide();
+    if let Some(focus_state) = app_handle.try_state::<WindowFocusState>() {
+        if let Ok(labels) = focus_state.quick_window_labels.lock() {
+            for label in labels.iter() {
+                if let Some(window) = app_handle.get_webview_window(label) {
+                    let _ = window.hide();
+                }
+            }
         }
     }
+}
+
+// 函数用于将焦点窗口置于前台或显示
+pub fn show_or_focus_window<R: Runtime>(
+    app_handle: &AppHandle<R>,
+    label: &str,
+) -> Result<(), tauri::Error> {
+    info!("显示或聚焦窗口: {}", label);
+    if let Some(window) = app_handle.get_webview_window(label) {
+        window.show()?;
+        window.set_focus()?;
+    }
+    Ok(())
+}
+
+// 函数用于切换窗口的可见性
+pub fn toggle_window_visibility<R: Runtime>(
+    app_handle: &AppHandle<R>,
+    label: &str,
+) -> Result<(), tauri::Error> {
+    info!("切换窗口可见性: {}", label);
+    if let Some(window) = app_handle.get_webview_window(label) {
+        if window.is_visible()? {
+            window.hide()?;
+        } else {
+            window.show()?;
+            window.set_focus()?;
+        }
+    }
+    Ok(())
+}
+
+// 检查是否有任何管理的窗口处于焦点
+pub fn is_any_window_focused<R: Runtime>(app_handle: &AppHandle<R>) -> bool {
+    info!("检查是否有窗口处于焦点");
+    if let Some(focus_state) = app_handle.try_state::<WindowFocusState>() {
+        let control_focused = match focus_state.control_focused.lock() {
+            Ok(f) => *f,
+            Err(_) => false,
+        };
+
+        let quick_focused = match focus_state.quick_windows_focused.lock() {
+            Ok(f) => *f,
+            Err(_) => false,
+        };
+
+        return control_focused || quick_focused;
+    }
+
+    false
 }
