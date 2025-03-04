@@ -21,6 +21,7 @@ pub fn register_commands<R: tauri::Runtime>() -> impl Fn(tauri::Builder<R>) -> t
             get_setup,
             set_setup,
             init_setup,
+            cmd_clear_cache,
         ])
     }
 }

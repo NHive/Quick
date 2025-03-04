@@ -6,6 +6,7 @@ use tauri::AppHandle;
 use tauri::Manager;
 
 use super::models::*;
+use super::utils;
 
 /// 窗口管理器
 /// 负责管理所有窗口的状态和信息
@@ -16,8 +17,6 @@ pub struct WindowManager {
     active_window: Option<String>,
     /// 前一个激活的窗口标签
     previous_active_window: Option<String>,
-    /// 窗口配置列表
-    window_configs: Vec<WindowConfig>,
     /// 控制窗口的位置
     control_position: Option<WindowPosition>,
     /// 是否正在更新状态(避免递归更新)
@@ -37,7 +36,6 @@ impl WindowManager {
             windows: HashMap::new(),
             active_window: None,
             previous_active_window: None,
-            window_configs: Vec::new(),
             control_position: None,
             is_updating: false,
             updating_source: None,
@@ -73,13 +71,56 @@ impl WindowManager {
     }
 
     /// 设置窗口配置列表
+    /// 将配置转换为WindowInfo并保存到windows哈希表中
     pub fn set_window_configs(&mut self, configs: Vec<WindowConfig>) {
-        self.window_configs = configs;
-    }
+        // 为每个配置创建一个WindowInfo
+        for (_index, config) in configs.iter().enumerate() {
+            let label = utils::generate_window_label(&config.url);
 
-    /// 获取窗口配置列表
-    pub fn get_window_configs(&self) -> Vec<WindowConfig> {
-        self.window_configs.clone()
+            // 如果窗口已存在，保留其状态和位置信息
+            let status = if let Some(existing) = self.windows.get(&label) {
+                existing.status.clone()
+            } else {
+                // 新窗口默认为后台状态
+                WindowStatus::Background
+            };
+
+            let position = if let Some(existing) = self.windows.get(&label) {
+                existing.position
+            } else {
+                None
+            };
+
+            let loaded = if let Some(existing) = self.windows.get(&label) {
+                existing.loaded
+            } else {
+                false
+            };
+
+            // 创建新的WindowInfo
+            let window_info = WindowInfo {
+                label: label.clone(),
+                title: config.title.clone(),
+                url: config.url.clone(),
+                status,
+                loaded,
+                position,
+            };
+
+            // 保存到哈希表
+            self.windows.insert(label, window_info);
+        }
+
+        // 确保active_window指向有效窗口
+        if let Some(active_label) = &self.active_window {
+            if !self.windows.contains_key(active_label) {
+                // 如果当前激活窗口不存在，设置第一个窗口为激活
+                self.active_window = self.windows.keys().next().map(|k| k.clone());
+            }
+        } else if !self.windows.is_empty() {
+            // 如果没有激活窗口但有窗口，设置第一个为激活
+            self.active_window = self.windows.keys().next().map(|k| k.clone());
+        }
     }
 
     /// 添加新窗口
@@ -162,14 +203,12 @@ impl WindowManager {
                 && (existing.width - position.width).abs() < 1.0
                 && (existing.height - position.height).abs() < 1.0
             {
-                self.finish_update();
                 return false;
             }
         }
 
         // 更新控制窗口位置
         self.control_position = Some(position);
-        self.finish_update();
         true
     }
 
@@ -188,18 +227,15 @@ impl WindowManager {
                     && (existing.width - position.width).abs() < 1.0
                     && (existing.height - position.height).abs() < 1.0
                 {
-                    self.finish_update();
                     return false;
                 }
             }
 
             // 更新位置信息
             window.position = Some(position);
-            self.finish_update();
             return true;
         }
 
-        self.finish_update();
         false
     }
 
@@ -236,11 +272,6 @@ impl WindowManager {
 
         // 其他情况不允许更新
         false
-    }
-
-    /// 完成更新
-    pub fn finish_update(&mut self) {
-        // 不立即释放锁定，让锁定时间到期自动释放
     }
 }
 

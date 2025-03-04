@@ -81,3 +81,15 @@ pub async fn cmd_show_previous_window<R: Runtime>(app_handle: AppHandle<R>) -> R
         Err(e) => Err(e.to_string()),
     }
 }
+
+// 清理指定标签的浏览器缓存
+#[tauri::command]
+pub async fn cmd_clear_cache<R: Runtime>(
+    app_handle: AppHandle<R>,
+    label: String,
+) -> Result<(), String> {
+    match operations::clear_window_cache(&app_handle, &label) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e.to_string()),
+    }
+}

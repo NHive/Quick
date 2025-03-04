@@ -6,8 +6,8 @@ use serde_json::json;
 use tauri::Manager;
 
 use crate::logic::window_manager::operations::{
-    configure_windows, create_or_switch_window, get_active_window, get_all_windows,
-    get_previous_active_window, show_previous_window, switch_to_window,
+    clear_window_cache, configure_windows, create_or_switch_window, get_active_window,
+    get_all_windows, get_previous_active_window, show_previous_window, switch_to_window,
 };
 
 use crate::logic::window_manager::models::{WindowConfig, WindowManagerState};
@@ -220,7 +220,6 @@ async fn get_window_manager_state(app_state: web::Data<AppState>) -> impl Respon
                 "active_window": window_manager.get_active_window(),
                 "previous_active_window": window_manager.get_previous_active_window(),
                 "control_position": window_manager.get_control_position(),
-                "window_configs": window_manager.get_window_configs(),
             });
             return HttpResponse::Ok().json(response);
         }
@@ -353,5 +352,31 @@ async fn init_setup(
         },
         None => HttpResponse::InternalServerError()
             .json(json!({"error": "Setup service not available"})),
+    }
+}
+
+// 清除窗口缓存请求参数
+#[derive(Deserialize)]
+struct ClearCacheRequest {
+    label: String,
+}
+
+// 清除指定窗口的缓存
+#[post("/api/debug/windows/clear_cache")]
+async fn clear_cache(
+    app_state: web::Data<AppState>,
+    req: web::Json<ClearCacheRequest>,
+) -> impl Responder {
+    let app_handle = match app_state.app_handle.lock() {
+        Ok(handle) => handle.clone(),
+        Err(_) => {
+            return HttpResponse::InternalServerError()
+                .json(json!({"error": "Failed to lock app handle"}))
+        }
+    };
+
+    match clear_window_cache(&app_handle, &req.label) {
+        Ok(_) => HttpResponse::Ok().json(json!({"success": true, "message": "窗口缓存已清除"})),
+        Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
     }
 }

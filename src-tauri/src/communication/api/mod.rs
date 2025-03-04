@@ -30,6 +30,7 @@ fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(set_setup);
     cfg.service(get_all_setups);
     cfg.service(init_setup);
+    cfg.service(clear_cache);
 }
 
 pub fn start_server(app_handle: AppHandle) -> Result<(), AppError> {

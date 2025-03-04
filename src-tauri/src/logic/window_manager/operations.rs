@@ -167,25 +167,13 @@ pub fn create_or_switch_window<R: Runtime>(
 /// 切换到特定窗口
 pub fn switch_to_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(), Error> {
     // 获取窗口信息和要隐藏的窗口
-    let (window_exists, create_from_config, config_info, to_hide) = {
+    let (window_info, to_hide) = {
         if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
             if let Ok(mut window_manager) = window_manager_state.0.try_lock() {
-                let window_exists = window_manager.get_window_info(label).is_some();
-
-                // 检查是否有窗口配置
-                let create_from_config = !window_exists;
-                let config_info = if !window_exists {
-                    let configs = window_manager.get_window_configs();
-                    configs
-                        .iter()
-                        .find(|c| generate_window_label(&c.url) == label)
-                        .cloned()
-                } else {
-                    None
-                };
+                let window_info = window_manager.get_window_info(label);
 
                 // 如果窗口存在，切换到它
-                if window_exists {
+                if window_info.is_some() {
                     window_manager.switch_to_window(label);
                 }
 
@@ -201,36 +189,45 @@ pub fn switch_to_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(
                     .map(|w| w.label)
                     .collect::<Vec<_>>();
 
-                (window_exists, create_from_config, config_info, to_hide)
+                (window_info, to_hide)
             } else {
-                (false, false, None, Vec::new())
+                (None, Vec::new())
             }
         } else {
-            (false, false, None, Vec::new())
+            (None, Vec::new())
         }
     };
 
-    if window_exists {
-        // 窗口存在，显示并带到前面
-        if let Some(window) = app.get_webview_window(label) {
-            window.show()?;
-            window.set_focus()?;
+    if let Some(window_info) = window_info {
+        // 检查窗口是否已经存在于Tauri中
+        let window_exists = app.get_webview_window(label).is_some();
 
-            // 将控制窗口定位在此快速窗口下方
-            position_control_window_below_quick(app, label)?;
+        if window_exists {
+            // 窗口存在，显示并带到前面
+            if let Some(window) = app.get_webview_window(label) {
+                window.show()?;
+                window.set_focus()?;
 
-            // 隐藏其他窗口
-            for hide_label in to_hide {
-                if let Some(other_window) = app.get_webview_window(&hide_label) {
-                    other_window.hide()?;
+                // 将控制窗口定位在此快速窗口下方
+                position_control_window_below_quick(app, label)?;
+
+                // 隐藏其他窗口
+                for hide_label in to_hide {
+                    if let Some(other_window) = app.get_webview_window(&hide_label) {
+                        other_window.hide()?;
+                    }
                 }
             }
+        } else {
+            // 窗口在管理器中存在但实际窗口未创建，需要创建
+            create_or_switch_window(app, &window_info.url, &window_info.title)?;
         }
-    } else if create_from_config {
-        // 从配置创建新窗口
-        if let Some(config) = config_info {
-            create_or_switch_window(app, &config.url, &config.title)?;
-        }
+    } else {
+        // 窗口不存在于管理器中，无法切换
+        return Err(Error::from(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!("窗口 {} 不存在", label),
+        )));
     }
 
     Ok(())
@@ -468,5 +465,19 @@ pub fn sync_positions_after_control_moved<R: Runtime>(app: &AppHandle<R>) -> Res
         }
     }
 
+    Ok(())
+}
+
+/// 清空窗口缓存
+pub fn clear_window_cache<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(), Error> {
+    let window = app.get_webview_window(label);
+    if let Some(window) = window {
+        window.clear_all_browsing_data()?;
+    } else {
+        return Err(Error::from(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!("窗口 {} 未找到", label),
+        )));
+    }
     Ok(())
 }
