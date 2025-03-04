@@ -42,7 +42,7 @@ impl WindowManager {
             is_updating: false,
             updating_source: None,
             last_update_time: std::time::Instant::now(),
-            update_lock_duration: 300, // 默认300毫秒锁定时间
+            update_lock_duration: 100, // 默认锁定时间
         }
     }
 
