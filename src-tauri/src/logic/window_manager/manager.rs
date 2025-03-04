@@ -75,7 +75,7 @@ impl WindowManager {
     pub fn set_window_configs(&mut self, configs: Vec<WindowConfig>) {
         // 为每个配置创建一个WindowInfo
         for (_index, config) in configs.iter().enumerate() {
-            let label = utils::generate_window_label(&config.url);
+            let label = utils::generate_window_label(&config.url, &config.title);
 
             // 如果窗口已存在，保留其状态和位置信息
             let status = if let Some(existing) = self.windows.get(&label) {

@@ -46,7 +46,7 @@ pub fn create_or_switch_window<R: Runtime>(
     url: &str,
     title: &str,
 ) -> Result<(), Error> {
-    let label = generate_window_label(url);
+    let label = generate_window_label(url, title);
 
     // 首先检查窗口是否存在
     let window_exists = app.get_webview_window(&label).is_some();
@@ -474,10 +474,8 @@ pub fn clear_window_cache<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result
     if let Some(window) = window {
         window.clear_all_browsing_data()?;
     } else {
-        return Err(Error::from(std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            format!("窗口 {} 未找到", label),
-        )));
+        let window = silence_create_window(app, label)?;
+        window.clear_all_browsing_data()?;
     }
     Ok(())
 }
@@ -540,4 +538,74 @@ pub fn hide_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(), Er
     }
 
     Ok(())
+}
+
+// 静默创建窗口
+pub fn silence_create_window<R: Runtime>(
+    app: &AppHandle<R>,
+    label: &str,
+) -> Result<tauri::WebviewWindow<R>, Error> {
+    // 首先检查窗口是否存在
+    let window_exists = app.get_webview_window(label);
+
+    if window_exists.is_some() {
+        log::warn!("窗口 {} 已存在，无需创建", label);
+        return Ok(window_exists.unwrap());
+    }
+
+    // 从窗口管理器中获取窗口信息
+    let window_info = if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
+        if let Ok(window_manager) = window_manager_state.0.try_lock() {
+            window_manager.get_window_info(label)
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    // 如果窗口信息不存在，返回错误
+    let (url, title) = if let Some(info) = window_info {
+        (info.url, info.title)
+    } else {
+        return Err(Error::from(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!("窗口 {} 的配置信息未找到", label),
+        )));
+    };
+
+    // 创建新窗口
+    let mut builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App(url.into()))
+        .title(&title)
+        .fullscreen(false)
+        .inner_size(1280.0, 768.0)
+        .center()
+        .resizable(true)
+        .visible(false)
+        .skip_taskbar(true)
+        .decorations(false)
+        .always_on_top(true);
+
+    // 根据操作系统设置不同的窗口样式
+    #[cfg(target_os = "macos")]
+    {
+        builder = builder.title_bar_style(TitleBarStyle::Overlay);
+        builder = builder.hidden_title(true);
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        builder = builder.decorations(false);
+        builder = builder.transparent(false);
+    }
+    let window = builder.build()?;
+
+    // 标记窗口为已加载
+    if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
+        if let Ok(mut window_manager) = window_manager_state.0.try_lock() {
+            window_manager.mark_window_loaded(label);
+        }
+    }
+
+    Ok(window)
 }

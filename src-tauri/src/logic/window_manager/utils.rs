@@ -8,7 +8,7 @@ use super::models::WindowPosition;
 
 /// 生成窗口标签
 /// 基于URL生成唯一的窗口标识符
-pub fn generate_window_label(url: &str) -> String {
+pub fn generate_window_label(url: &str, title: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(url.as_bytes());
     let result = hasher.finalize();
@@ -24,7 +24,11 @@ pub fn generate_window_label(url: &str) -> String {
         }
     }
 
-    format!("quick_{}", label.chars().take(20).collect::<String>())
+    format!(
+        "quick_{}_{}",
+        title,
+        label.chars().take(20).collect::<String>()
+    )
 }
 
 /// 获取窗口位置和大小
@@ -45,7 +49,7 @@ pub fn get_window_position_and_size<R: Runtime>(
         let position = window
             .outer_position()?
             .to_logical::<f64>(window.scale_factor()?);
-        
+
         let size = window
             .inner_size()?
             .to_logical::<f64>(window.scale_factor()?);
