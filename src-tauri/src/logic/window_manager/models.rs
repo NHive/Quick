@@ -1,7 +1,7 @@
+// file_path: src/logic/window_manager/models.rs
 // 包含所有窗口管理相关的数据结构定义
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 // =============== 数据结构 ===============

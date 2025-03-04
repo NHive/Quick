@@ -1,13 +1,16 @@
+// file_path: src/infrastructure/log.rs
+use chrono::SecondsFormat;
+use flexi_logger::writers::LogWriter;
+use flexi_logger::{DeferredNow, FileSpec, Logger, Record};
+use log::info;
+use serde_derive::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fmt;
 use std::str::FromStr;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, RwLock};
 
-use chrono::SecondsFormat;
-use flexi_logger::writers::LogWriter;
-use flexi_logger::{DeferredNow, Record};
-use serde_derive::{Deserialize, Serialize};
+use crate::logic::tools::path::AppPath;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum LogLevel {
@@ -73,6 +76,13 @@ pub struct TempLogger {
 }
 
 impl TempLogger {
+    pub fn new() -> Self {
+        Self {
+            logs: Arc::new(RwLock::new(Vec::new())),
+            id: Arc::new(AtomicU64::new(0)),
+        }
+    }
+
     pub fn read_log(&self, query: &LogQuery) -> Vec<LogData> {
         let logs = self.logs.read().unwrap().clone();
 
@@ -127,7 +137,7 @@ impl LogWriter for TempLogger {
         let log = LogData {
             id: self.id.fetch_add(1, Ordering::Relaxed),
             time: now.now().to_rfc3339_opts(SecondsFormat::Millis, true),
-            level: record.level().to_string().parse().unwrap_or(LogLevel::Info),
+            level: record.level().to_string().parse().unwrap_or(LogLevel::Debug),
             target: record.target().to_string(),
             args: record.args().to_string(),
         };
@@ -149,6 +159,39 @@ impl LogWriter for TempLogger {
     fn max_log_level(&self) -> log::LevelFilter {
         log::LevelFilter::max()
     }
+}
+
+pub fn init_logger(app_path: &AppPath) -> Result<TempLogger, Box<dyn std::error::Error>> {
+    let temp_logger = TempLogger::new();
+    let logger_clone = temp_logger.clone();
+
+    // 使用 AppPath 的 base_path 创建 logs 目录
+    let log_dir = app_path.base_path.join("logs");
+
+    // 创建日志目录（如果不存在）
+    std::fs::create_dir_all(&log_dir)?;
+
+    // 配置日志记录器
+    Logger::try_with_env_or_str("info")?
+        .log_to_file(
+            FileSpec::default()
+                .directory(log_dir)
+                .basename("app")
+                .suffix("log"),
+        )
+        .format(flexi_logger::opt_format)
+        .rotate(
+            flexi_logger::Criterion::Size(5 * 1024 * 1024), // 5MB
+            flexi_logger::Naming::Numbers,
+            flexi_logger::Cleanup::KeepLogFiles(5),
+        )
+        .duplicate_to_stdout(flexi_logger::Duplicate::Debug)
+        .add_writer("memory_log", Box::new(logger_clone)) 
+        .start()?;
+
+    info!("日志系统已初始化");
+
+    Ok(temp_logger)
 }
 
 #[cfg(test)]

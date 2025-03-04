@@ -3,8 +3,10 @@ use crate::infrastructure::error::AppError;
 use directories::ProjectDirs;
 use std::path::PathBuf;
 
+#[derive(Clone)]
 pub struct AppPath {
     pub base_path: PathBuf,
+    #[allow(dead_code)]
     pub temp_path: PathBuf,
 }
 

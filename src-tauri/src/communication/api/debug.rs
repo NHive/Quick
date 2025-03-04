@@ -10,7 +10,9 @@ use crate::logic::window_manager::operations::{
     get_previous_active_window, show_previous_window, switch_to_window,
 };
 
-use crate::logic::window_manager::models::{WindowConfig, WindowManagerState, WindowPosition};
+use crate::logic::window_manager::models::{WindowConfig, WindowManagerState};
+// 添加日志相关的导入
+use crate::infrastructure::log::{LogQuery, TempLogger};
 
 use super::AppState;
 
@@ -197,13 +199,6 @@ async fn configure_window_list(
     }
 }
 
-// 窗口位置信息请求参数
-#[derive(Deserialize)]
-struct WindowPositionRequest {
-    label: String,
-    position: WindowPosition,
-}
-
 // 获取窗口管理器当前状态的详细信息
 #[get("/api/debug/windows/state")]
 async fn get_window_manager_state(app_state: web::Data<AppState>) -> impl Responder {
@@ -229,4 +224,25 @@ async fn get_window_manager_state(app_state: web::Data<AppState>) -> impl Respon
     }
 
     HttpResponse::InternalServerError().json(json!({"error": "Failed to access window manager"}))
+}
+
+// 查询日志的接口
+#[get("/api/debug/logs")]
+async fn get_logs(app_state: web::Data<AppState>, query: Query<LogQuery>) -> impl Responder {
+    let app_handle = match app_state.app_handle.lock() {
+        Ok(handle) => handle.clone(),
+        Err(_) => {
+            return HttpResponse::InternalServerError()
+                .json(json!({"error": "Failed to lock app handle"}))
+        }
+    };
+
+    // 尝试获取日志管理器
+    match app_handle.try_state::<TempLogger>() {
+        Some(logger) => {
+            let logs = logger.read_log(&query);
+            HttpResponse::Ok().json(logs)
+        }
+        None => HttpResponse::InternalServerError().json(json!({"error": "Logger not available"})),
+    }
 }

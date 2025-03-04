@@ -1,3 +1,4 @@
+// file_path: src/logic/window_manager/manager.rs
 // 窗口管理器的核心实现
 
 use std::collections::HashMap;
@@ -202,15 +203,6 @@ impl WindowManager {
         false
     }
 
-    /// 获取窗口位置
-    pub fn get_window_position(&self, label: &str) -> Option<WindowPosition> {
-        if let Some(window) = self.windows.get(label) {
-            window.position
-        } else {
-            None
-        }
-    }
-
     /// 获取控制窗口位置
     pub fn get_control_position(&self) -> Option<WindowPosition> {
         self.control_position
@@ -253,7 +245,9 @@ impl WindowManager {
 }
 
 /// 初始化窗口管理器
-pub fn init_window_manager<R: tauri::Runtime>(app: &AppHandle<R>) {
+pub fn init_window_manager<R: tauri::Runtime>(
+    app: &AppHandle<R>,
+) -> Result<(), Box<dyn std::error::Error>> {
     // 创建窗口管理器实例
     let window_manager = WindowManager::new();
     let window_manager_state = super::models::WindowManagerState(std::sync::Arc::new(
@@ -262,4 +256,6 @@ pub fn init_window_manager<R: tauri::Runtime>(app: &AppHandle<R>) {
 
     // 注册为应用状态
     app.manage(window_manager_state);
+
+    Ok(())
 }

@@ -166,8 +166,6 @@ fn handle_window_focused<R: Runtime>(app_handle: &Arc<AppHandle<R>>, label: &str
             }
         };
 
-        let mut focus_state_updated = false;
-
         // 更新焦点状态
         {
             let mut focus_state = match focus_state_arc.lock() {
@@ -194,13 +192,10 @@ fn handle_window_focused<R: Runtime>(app_handle: &Arc<AppHandle<R>>, label: &str
 
             // 更新隐藏标志
             focus_state.set_hide_pending(!focused);
-
-            // 窗口失去焦点时，标记需要检查状态
-            focus_state_updated = !focused;
         }
 
         // 如果窗口失去焦点，延时检查是否应该隐藏所有窗口
-        if focus_state_updated {
+        if !focused {
             // 延迟一小段时间再检查，避免焦点切换冲突
             tokio::time::sleep(Duration::from_millis(150)).await;
 

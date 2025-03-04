@@ -1,6 +1,7 @@
+// file_path: src/logic/window_manager/operations.rs
 // 窗口操作的API实现
 
-use log::{debug, warn};
+use log::debug;
 use tauri::utils::config::WebviewUrl;
 use tauri::{AppHandle, Error, Manager, Runtime, WebviewWindowBuilder};
 
@@ -48,7 +49,7 @@ pub fn create_or_switch_window<R: Runtime>(
     let window_exists = app.get_webview_window(&label).is_some();
 
     // 记录要更新的窗口信息
-    let (active_changed, to_hide) = {
+    let (_active_changed, to_hide) = {
         if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
             if let Ok(mut window_manager) = window_manager_state.0.try_lock() {
                 let was_active = window_manager
@@ -294,7 +295,7 @@ pub fn position_control_window_below_quick<R: Runtime>(
     quick_window_label: &str,
 ) -> Result<(), Error> {
     // 获取快速窗口
-    let quick_window = app.get_webview_window(quick_window_label).ok_or_else(|| {
+    let _quick_window = app.get_webview_window(quick_window_label).ok_or_else(|| {
         Error::from(std::io::Error::new(
             std::io::ErrorKind::NotFound,
             format!("窗口 {} 未找到", quick_window_label),

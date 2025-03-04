@@ -1,3 +1,4 @@
+// file_path: src/logic/window_manager/utils.rs
 // 窗口管理相关的工具函数
 
 use sha2::{Digest, Sha256};

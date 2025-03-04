@@ -25,6 +25,7 @@ fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(create_window);
     cfg.service(configure_window_list);
     cfg.service(get_window_manager_state);
+    cfg.service(get_logs);
 }
 
 pub fn start_server(app_handle: AppHandle) -> Result<(), AppError> {
