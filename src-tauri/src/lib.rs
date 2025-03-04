@@ -11,6 +11,7 @@ use tauri_plugin_autostart::MacosLauncher;
 
 use infrastructure::db::DB;
 use infrastructure::log::init_logger;
+use infrastructure::setup::SetupService;
 use logic::tools::path::AppPath;
 use logic::window_manager::manager::init_window_manager;
 
@@ -57,6 +58,10 @@ fn setup_app(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     });
 
     app.manage(app_path);
+
+    // 初始化设置服务
+    let setup_service = SetupService::new();
+    app.manage(setup_service);
 
     Ok(())
 }

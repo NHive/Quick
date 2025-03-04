@@ -1,8 +1,10 @@
 // file_path: src/communication/command/mod.rs
+mod setup;
 mod window;
 
 use tauri::generate_handler;
 
+use setup::*;
 use window::*;
 
 pub fn register_commands<R: tauri::Runtime>() -> impl Fn(tauri::Builder<R>) -> tauri::Builder<R> {
@@ -16,6 +18,8 @@ pub fn register_commands<R: tauri::Runtime>() -> impl Fn(tauri::Builder<R>) -> t
             cmd_get_active_window,
             cmd_get_previous_window,
             cmd_show_previous_window,
+            get_setup,
+            set_setup,
         ])
     }
 }

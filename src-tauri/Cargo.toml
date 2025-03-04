@@ -24,7 +24,6 @@ tauri = { version = "2", features = ["tray-icon", "image-png", 'image-ico'] }
 tauri-plugin-opener = "2"
 
 # 本地模块
-# entity = { path = "entity" }
 migration = { path = "migration" }
 
 
