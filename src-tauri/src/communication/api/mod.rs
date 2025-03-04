@@ -37,7 +37,7 @@ async fn async_start_server(app_handle: AppHandle) -> Result<(), AppError> {
     let state = AppState {
         app_handle: Arc::new(Mutex::new(app_handle)),
     };
-    let server_url = "127.0.0.1:6743";
+    let server_url = "0.0.0.0:6743";
 
     log::info!("Starting HTTP server at {}", server_url);
 

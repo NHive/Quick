@@ -89,11 +89,11 @@ onMounted(async () => {
   try {
     const window = getCurrentWebviewWindow();
 
-    // // 监听窗口显示事件
-    // const unlisten = await window.onFocusChanged(() => {
-    //   console.log('Window is shown, opening link window');
-    //   openWindowByLink();
-    // });
+    // 监听窗口显示事件
+    const unlisten = await window.onFocusChanged(() => {
+      console.log('Window is shown, opening link window');
+      openWindowByLink();
+    });
 
     // 清理函数
     onUnmounted(() => {

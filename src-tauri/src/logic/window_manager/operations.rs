@@ -108,7 +108,7 @@ pub fn create_or_switch_window<R: Runtime>(
             .inner_size(1280.0, 768.0)
             .center()
             .resizable(true)
-            .visible(false) // 先隐藏再显示以避免闪烁
+            .visible(false)
             .skip_taskbar(true)
             .decorations(false)
             .always_on_top(true);
@@ -123,7 +123,7 @@ pub fn create_or_switch_window<R: Runtime>(
         #[cfg(not(target_os = "macos"))]
         {
             builder = builder.decorations(false);
-            builder = builder.transparent(true);
+            builder = builder.transparent(false);
         }
 
         // 构建窗口

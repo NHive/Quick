@@ -46,7 +46,7 @@ pub fn run() {
             let _ = infrastructure::tray::menu(app.handle());
             // let window_manager = WindowManager::new();
 
-            let tx = init_window_manager(&app.app_handle());
+            let _ = init_window_manager(&app.app_handle());
 
             // 初始化窗口焦点状态追踪器
             app.manage(Arc::new(Mutex::new(WindowFocusState::new())));

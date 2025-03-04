@@ -8,7 +8,7 @@ use crate::logic::window_manager::operations;
 use crate::window::setting;
 
 #[tauri::command]
-pub fn cmd_create_window<R: Runtime>(
+pub async fn cmd_create_window<R: Runtime>(
     app_handle: AppHandle<R>,
     url: String,
     title: String,
@@ -29,7 +29,7 @@ pub async fn open_setting_window<R: Runtime>(app_handle: AppHandle<R>) -> Result
 
 //  配置窗口列表
 #[tauri::command]
-pub fn cmd_configure_windows<R: Runtime>(
+pub async fn cmd_configure_windows<R: Runtime>(
     app_handle: AppHandle<R>,
     configs: Vec<models::WindowConfig>,
 ) -> Result<(), String> {
@@ -41,7 +41,7 @@ pub fn cmd_configure_windows<R: Runtime>(
 
 // 切换窗口
 #[tauri::command]
-pub fn cmd_switch_to_window<R: Runtime>(
+pub async fn cmd_switch_to_window<R: Runtime>(
     app_handle: AppHandle<R>,
     label: String,
 ) -> Result<(), String> {
@@ -53,25 +53,29 @@ pub fn cmd_switch_to_window<R: Runtime>(
 
 // 获取所有窗口信息
 #[tauri::command]
-pub fn cmd_get_all_windows<R: Runtime>(app_handle: AppHandle<R>) -> Vec<models::WindowInfo> {
+pub async fn cmd_get_all_windows<R: Runtime>(app_handle: AppHandle<R>) -> Vec<models::WindowInfo> {
     operations::get_all_windows(&app_handle)
 }
 
 // 获取活动窗口信息
 #[tauri::command]
-pub fn cmd_get_active_window<R: Runtime>(app_handle: AppHandle<R>) -> Option<models::WindowInfo> {
+pub async fn cmd_get_active_window<R: Runtime>(
+    app_handle: AppHandle<R>,
+) -> Option<models::WindowInfo> {
     operations::get_active_window(&app_handle)
 }
 
 // 获取之前活动的窗口信息
 #[tauri::command]
-pub fn cmd_get_previous_window<R: Runtime>(app_handle: AppHandle<R>) -> Option<models::WindowInfo> {
+pub async fn cmd_get_previous_window<R: Runtime>(
+    app_handle: AppHandle<R>,
+) -> Option<models::WindowInfo> {
     operations::get_previous_active_window(&app_handle)
 }
 
 // 显示上一个活动窗口
 #[tauri::command]
-pub fn cmd_show_previous_window<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
+pub async fn cmd_show_previous_window<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
     match operations::show_previous_window(&app_handle) {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string()),
