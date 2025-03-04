@@ -120,4 +120,18 @@ impl SetupService {
     pub fn get_all_setups(&self) -> Result<HashMap<String, Value>, AppError> {
         tauri::async_runtime::block_on(self.get_all_setups_async())
     }
+
+    pub async fn init_setup_async(&self, defaults: HashMap<String, Value>) -> Result<(), AppError> {
+        for (key, value) in defaults {
+            // 只有当键不存在时才设置默认值
+            if self.get_setup_async(&key).await?.is_none() {
+                self.set_setup_async(&key, &value).await?;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn init_setup(&self, defaults: HashMap<String, Value>) -> Result<(), AppError> {
+        tauri::async_runtime::block_on(self.init_setup_async(defaults))
+    }
 }

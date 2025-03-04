@@ -325,3 +325,33 @@ async fn get_all_setups(app_state: web::Data<AppState>) -> impl Responder {
             .json(json!({"error": "Setup service not available"})),
     }
 }
+
+// 初始化设置请求参数
+#[derive(Deserialize)]
+struct InitSetupRequest {
+    defaults: std::collections::HashMap<String, Value>,
+}
+
+// 初始化设置的接口
+#[post("/api/debug/setup/init")]
+async fn init_setup(
+    app_state: web::Data<AppState>,
+    req: web::Json<InitSetupRequest>,
+) -> impl Responder {
+    let app_handle = match app_state.app_handle.lock() {
+        Ok(handle) => handle.clone(),
+        Err(_) => {
+            return HttpResponse::InternalServerError()
+                .json(json!({"error": "Failed to lock app handle"}))
+        }
+    };
+
+    match app_handle.try_state::<SetupService>() {
+        Some(setup_service) => match setup_service.init_setup_async(req.defaults.clone()).await {
+            Ok(_) => HttpResponse::Ok().json(json!({"success": true})),
+            Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
+        },
+        None => HttpResponse::InternalServerError()
+            .json(json!({"error": "Setup service not available"})),
+    }
+}

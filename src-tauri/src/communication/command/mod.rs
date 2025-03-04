@@ -20,6 +20,7 @@ pub fn register_commands<R: tauri::Runtime>() -> impl Fn(tauri::Builder<R>) -> t
             cmd_show_previous_window,
             get_setup,
             set_setup,
+            init_setup,
         ])
     }
 }

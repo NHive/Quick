@@ -29,6 +29,7 @@ fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(get_setup);
     cfg.service(set_setup);
     cfg.service(get_all_setups);
+    cfg.service(init_setup);
 }
 
 pub fn start_server(app_handle: AppHandle) -> Result<(), AppError> {
