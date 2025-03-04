@@ -17,6 +17,9 @@ use tauri::LogicalPosition;
 #[cfg(not(target_os = "macos"))]
 use tauri::PhysicalPosition;
 
+#[cfg(not(target_os = "macos"))]
+use log::warn;
+
 /// 配置窗口列表
 pub fn configure_windows<R: Runtime>(
     app: &AppHandle<R>,
