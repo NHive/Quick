@@ -379,6 +379,9 @@ pub fn position_control_window_below_quick<R: Runtime>(
         }
     }
 
+    // 显示控制窗口
+    control_window.show()?;
+
     Ok(())
 }
 
