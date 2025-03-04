@@ -41,8 +41,13 @@ pub fn get_window_position_and_size<R: Runtime>(
     #[cfg(target_os = "macos")]
     {
         // macOS 使用逻辑坐标
-        let position = window.outer_position()?;
-        let size = window.inner_size()?;
+        let position = window
+            .outer_position()?
+            .to_logical::<f64>(window.scale_factor()?);
+        
+        let size = window
+            .inner_size()?
+            .to_logical::<f64>(window.scale_factor()?);
 
         Ok(WindowPosition {
             x: f64::from(position.x),

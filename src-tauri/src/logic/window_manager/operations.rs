@@ -1,5 +1,6 @@
 // 窗口操作的API实现
 
+use log::{debug, warn};
 use tauri::utils::config::WebviewUrl;
 use tauri::{AppHandle, Error, Manager, Runtime, WebviewWindowBuilder};
 
@@ -292,8 +293,6 @@ pub fn position_control_window_below_quick<R: Runtime>(
     app: &AppHandle<R>,
     quick_window_label: &str,
 ) -> Result<(), Error> {
-    use log::{debug, warn};
-
     // 获取快速窗口
     let quick_window = app.get_webview_window(quick_window_label).ok_or_else(|| {
         Error::from(std::io::Error::new(
