@@ -273,6 +273,16 @@ impl WindowManager {
         // 其他情况不允许更新
         false
     }
+
+    /// 清除当前激活窗口状态
+    pub fn clear_active_window(&mut self) {
+        // 将当前激活窗口保存为前一个激活窗口
+        if let Some(active_label) = &self.active_window {
+            self.previous_active_window = Some(active_label.clone());
+        }
+        // 清除当前激活窗口
+        self.active_window = None;
+    }
 }
 
 /// 初始化窗口管理器

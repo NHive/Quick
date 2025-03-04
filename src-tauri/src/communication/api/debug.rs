@@ -6,8 +6,9 @@ use serde_json::json;
 use tauri::Manager;
 
 use crate::logic::window_manager::operations::{
-    clear_window_cache, configure_windows, create_or_switch_window, get_active_window,
-    get_all_windows, get_previous_active_window, show_previous_window, switch_to_window,
+    clear_window_cache, close_window, configure_windows, create_or_switch_window,
+    get_active_window, get_all_windows, get_previous_active_window, hide_window,
+    show_previous_window, switch_to_window,
 };
 
 use crate::logic::window_manager::models::{WindowConfig, WindowManagerState};
@@ -377,6 +378,58 @@ async fn clear_cache(
 
     match clear_window_cache(&app_handle, &req.label) {
         Ok(_) => HttpResponse::Ok().json(json!({"success": true, "message": "窗口缓存已清除"})),
+        Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
+    }
+}
+
+// 关闭窗口请求参数
+#[derive(Deserialize)]
+struct CloseWindowRequest {
+    label: String,
+}
+
+// 关闭指定窗口的接口
+#[post("/api/debug/windows/close")]
+async fn close_window_handler(
+    app_state: web::Data<AppState>,
+    req: web::Json<CloseWindowRequest>,
+) -> impl Responder {
+    let app_handle = match app_state.app_handle.lock() {
+        Ok(handle) => handle.clone(),
+        Err(_) => {
+            return HttpResponse::InternalServerError()
+                .json(json!({"error": "Failed to lock app handle"}))
+        }
+    };
+
+    match close_window(&app_handle, &req.label) {
+        Ok(_) => HttpResponse::Ok().json(json!({"success": true, "message": "窗口已关闭"})),
+        Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
+    }
+}
+
+// 隐藏窗口请求参数
+#[derive(Deserialize)]
+struct HideWindowRequest {
+    label: String,
+}
+
+// 隐藏指定窗口的接口
+#[post("/api/debug/windows/hide")]
+async fn hide_window_handler(
+    app_state: web::Data<AppState>,
+    req: web::Json<HideWindowRequest>,
+) -> impl Responder {
+    let app_handle = match app_state.app_handle.lock() {
+        Ok(handle) => handle.clone(),
+        Err(_) => {
+            return HttpResponse::InternalServerError()
+                .json(json!({"error": "Failed to lock app handle"}))
+        }
+    };
+
+    match hide_window(&app_handle, &req.label) {
+        Ok(_) => HttpResponse::Ok().json(json!({"success": true, "message": "窗口已隐藏"})),
         Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
     }
 }

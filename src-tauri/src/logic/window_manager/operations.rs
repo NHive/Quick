@@ -481,3 +481,63 @@ pub fn clear_window_cache<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result
     }
     Ok(())
 }
+
+/// 关闭指定窗口
+pub fn close_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(), Error> {
+    // 首先检查窗口是否存在
+    let window = app.get_webview_window(label).ok_or_else(|| {
+        Error::from(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!("窗口 {} 未找到", label),
+        ))
+    })?;
+
+    // 关闭窗口
+    window.close()?;
+
+    // 如果关闭的是活跃窗口，清空窗口管理器中的活跃窗口状态
+    if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
+        if let Ok(mut window_manager) = window_manager_state.0.try_lock() {
+            if let Some(mut active_window) = window_manager.get_active_window() {
+                if active_window.label == label {
+                    active_window.loaded = false; // 如果窗口关闭，标记为未加载
+                    window_manager.clear_active_window();
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// 隐藏指定窗口
+pub fn hide_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(), Error> {
+    // 首先检查窗口是否存在
+    let window = app.get_webview_window(label).ok_or_else(|| {
+        Error::from(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!("窗口 {} 未找到", label),
+        ))
+    })?;
+
+    // 隐藏窗口
+    window.hide()?;
+
+    // 更新窗口管理器中的窗口状态
+    if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
+        if let Ok(mut window_manager) = window_manager_state.0.try_lock() {
+            if let Some(window) = window_manager.get_window_info(label) {
+                if window.status == WindowStatus::Foreground {
+                    // 如果隐藏的是前台窗口，则尝试切换到前一个活跃窗口
+                    if let Some(previous_window) = window_manager.get_previous_active_window() {
+                        window_manager.switch_to_window(&previous_window.label);
+                    } else {
+                        window_manager.clear_active_window();
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}

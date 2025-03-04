@@ -92,7 +92,7 @@ onMounted(async () => {
     // 监听窗口显示事件
     const unlisten = await window.onFocusChanged(() => {
       console.log('Window is shown, opening link window');
-      openWindowByLink();
+      // openWindowByLink();
     });
 
     // 清理函数
@@ -130,7 +130,8 @@ onMounted(async () => {
   list-style: none;
   padding: 10px 15px;
   display: flex;
-  flex-direction: row; /* 由纵向改为横向 */
+  flex-direction: row;
+  /* 由纵向改为横向 */
   justify-content: flex-start;
   align-items: center;
 
@@ -143,8 +144,10 @@ onMounted(async () => {
     width: 30px;
     height: 30px;
     cursor: pointer;
-    margin-right: 20px; /* 由下边距改为右边距 */
-    margin-bottom: 0; /* 移除下边距 */
+    margin-right: 20px;
+    /* 由下边距改为右边距 */
+    margin-bottom: 0;
+    /* 移除下边距 */
     color: #888;
   }
 

@@ -20,7 +20,7 @@
         "decorations": false,
         "width": 800,
         "titleBarStyle": "Overlay",
-        "visible": true,
+        "visible": false,
         "skipTaskbar": true,
         "alwaysOnTop": true,
         "contentProtected": false,

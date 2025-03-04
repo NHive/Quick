@@ -31,6 +31,8 @@ fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(get_all_setups);
     cfg.service(init_setup);
     cfg.service(clear_cache);
+    cfg.service(close_window_handler);
+    cfg.service(hide_window_handler);
 }
 
 pub fn start_server(app_handle: AppHandle) -> Result<(), AppError> {

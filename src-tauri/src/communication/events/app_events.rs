@@ -9,6 +9,8 @@ use crate::logic::window_manager::operations::{
     position_control_window_below_quick, sync_positions_after_control_moved,
 };
 
+use crate::logic::window_manager::models::WindowManagerState;
+
 // 窗口焦点状态追踪结构体
 pub struct WindowFocusState {
     control_focused: bool,                // 控制窗口是否拥有焦点
@@ -256,6 +258,15 @@ async fn hide_all_managed_windows<R: Runtime>(app_handle: &AppHandle<R>) {
                     warn!("无法隐藏窗口 {}: {}", label, e);
                 }
             }
+        }
+    }
+
+    // 清除活动窗口状态
+    if let Some(window_manager_state) = app_handle.try_state::<WindowManagerState>() {
+        if let Ok(mut window_manager) = window_manager_state.0.lock() {
+            window_manager.clear_active_window();
+        } else {
+            error!("无法锁定窗口管理器以清除活动窗口状态");
         }
     }
 }
