@@ -1,3 +1,4 @@
+// file_path: src/infrastructure/setup.rs
 use super::entity::prelude::*;
 use super::entity::setup;
 use super::entity::setup::ActiveModel;

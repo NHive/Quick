@@ -1,3 +1,4 @@
+// file_path: src/communication/command/setup.rs
 use serde_json::Value;
 use std::collections::HashMap;
 use tauri::{AppHandle, Manager, Runtime};
