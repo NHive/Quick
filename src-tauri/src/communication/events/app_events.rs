@@ -19,6 +19,8 @@ pub struct WindowFocusState {
     last_focus_change: Instant,           // 上次焦点变化时间点
     hide_pending: bool,                   // 是否等待隐藏
     is_pinned: bool,                      // 窗口是否处于Pin状态
+    quick_window_current: Option<String>, // 当前活动的快速窗口标签
+    is_showing_quick_window: bool,        // 是否正在显示快速窗口
 }
 
 impl WindowFocusState {
@@ -30,7 +32,9 @@ impl WindowFocusState {
             quick_window_labels: HashSet::new(),
             last_focus_change: Instant::now(),
             hide_pending: false,
-            is_pinned: true,
+            is_pinned: false,
+            quick_window_current: None,
+            is_showing_quick_window: false,
         }
     }
 
@@ -85,6 +89,26 @@ impl WindowFocusState {
     pub fn is_pinned(&self) -> bool {
         self.is_pinned
     }
+
+    // 设置当前活动的快速窗口标签
+    pub fn set_current_quick_window(&mut self, label: Option<String>) {
+        self.quick_window_current = label;
+    }
+
+    // 获取当前活动的快速窗口标签
+    pub fn get_current_quick_window(&self) -> &Option<String> {
+        &self.quick_window_current
+    }
+
+    // 设置是否正在显示快速窗口
+    pub fn set_showing_quick_window(&mut self, showing: bool) {
+        self.is_showing_quick_window = showing;
+    }
+
+    // 检查是否正在显示快速窗口
+    pub fn is_showing_quick_window(&self) -> bool {
+        self.is_showing_quick_window
+    }
 }
 
 // 应用程序事件主处理函数
@@ -130,6 +154,15 @@ fn handle_window_moved<R: Runtime>(
                 {
                     warn!("定位控制窗口失败: {}", e);
                 }
+
+                // 更新当前活动的快速窗口
+                if let Some(focus_state_arc) =
+                    app_handle_clone.try_state::<Arc<RwLock<WindowFocusState>>>()
+                {
+                    if let Ok(mut focus_state) = focus_state_arc.write() {
+                        focus_state.set_current_quick_window(Some(label_clone.clone()));
+                    }
+                }
             }
             _ => {} // 忽略其他窗口
         }
@@ -163,6 +196,34 @@ fn handle_window_resized<R: Runtime>(
             _ => {} // 忽略其他窗口
         }
     });
+}
+
+// 将焦点还给快速窗口
+async fn return_focus_to_quick_window<R: Runtime>(app_handle: &AppHandle<R>) {
+    if let Some(focus_state_arc) = app_handle.try_state::<Arc<RwLock<WindowFocusState>>>() {
+        let current_quick_window = {
+            match focus_state_arc.read() {
+                Ok(state) => state.get_current_quick_window().clone(),
+                Err(e) => {
+                    error!("获取当前快速窗口标签时无法锁定焦点状态: {}", e);
+                    return;
+                }
+            }
+        };
+
+        if let Some(quick_window_label) = current_quick_window {
+            if let Some(quick_window) = app_handle.get_webview_window(&quick_window_label) {
+                info!("将焦点还给快速窗口: {}", quick_window_label);
+                if let Err(e) = quick_window.set_focus() {
+                    warn!("无法将焦点设置到快速窗口 {}: {}", quick_window_label, e);
+                }
+            } else {
+                warn!("找不到快速窗口: {}", quick_window_label);
+            }
+        } else {
+            info!("没有当前活动的快速窗口，无法还焦点");
+        }
+    }
 }
 
 // 处理窗口焦点事件
@@ -208,6 +269,28 @@ fn handle_window_focused<R: Runtime>(app_handle: &Arc<AppHandle<R>>, label: &str
             focus_state.set_hide_pending(!focused);
         }
 
+        // 处理控制窗口获取焦点的情况
+        if label_clone == "control" && focused {
+            // 延迟100ms后将焦点还给快速窗口
+            let app_handle_for_focus = app_handle_clone.clone();
+            tokio::time::sleep(Duration::from_millis(100)).await;
+
+            // 再次检查控制窗口是否仍有焦点（防止用户在100ms内已切换焦点）
+            let still_focused = {
+                match focus_state_arc.read() {
+                    Ok(state) => state.control_focused,
+                    Err(e) => {
+                        error!("检查控制窗口焦点状态时无法锁定焦点状态: {}", e);
+                        false
+                    }
+                }
+            };
+
+            if still_focused {
+                return_focus_to_quick_window(&app_handle_for_focus).await;
+            }
+        }
+
         // 如果窗口失去焦点，延时检查是否应该隐藏所有窗口
         if !focused {
             // 延迟一小段时间再检查，避免焦点切换冲突
@@ -233,9 +316,10 @@ fn handle_window_focused<R: Runtime>(app_handle: &Arc<AppHandle<R>>, label: &str
                 // 隐藏所有管理的窗口
                 hide_all_managed_windows(&app_handle_clone).await;
 
-                // 重置隐藏等待标志
+                // 重置隐藏等待标志和显示状态
                 if let Ok(mut focus_state) = focus_state_arc.write() {
                     focus_state.set_hide_pending(false);
+                    focus_state.set_showing_quick_window(false);
                 }
             }
         }
@@ -257,7 +341,7 @@ async fn hide_all_managed_windows<R: Runtime>(app_handle: &AppHandle<R>) {
     if let Some(focus_state_arc) = app_handle.try_state::<Arc<RwLock<WindowFocusState>>>() {
         let quick_window_labels = {
             match focus_state_arc.read() {
-                Ok(state) => state.get_quick_window_labels().clone(),
+                Ok(state) => state.get_current_quick_window().clone(),
                 Err(e) => {
                     error!("获取快速窗口标签时无法锁定焦点状态: {}", e);
                     return;
@@ -265,12 +349,18 @@ async fn hide_all_managed_windows<R: Runtime>(app_handle: &AppHandle<R>) {
             }
         };
 
-        for label in quick_window_labels {
+        if let Some(label) = quick_window_labels {
             if let Some(window) = app_handle.get_webview_window(&label) {
                 if let Err(e) = window.hide() {
                     warn!("无法隐藏窗口 {}: {}", label, e);
                 }
             }
+        }
+
+        // 清除当前活动的快速窗口
+        if let Ok(mut focus_state) = focus_state_arc.write() {
+            focus_state.set_current_quick_window(None);
+            focus_state.set_showing_quick_window(false);
         }
     }
 

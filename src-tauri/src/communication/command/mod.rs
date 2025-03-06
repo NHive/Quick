@@ -26,6 +26,7 @@ pub fn register_commands<R: tauri::Runtime>() -> impl Fn(tauri::Builder<R>) -> t
             cmd_clear_cache,
             get_window_pin,
             set_window_pin,
+            cmd_hide_control_window,
         ])
     }
 }

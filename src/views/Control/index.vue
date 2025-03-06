@@ -3,7 +3,7 @@
     <div class="controlPanel">
       <!-- Left side: Function buttons -->
       <ul class="functionButtons">
-        <li class="controlIcon collapse" @click="openSettingWindow">
+        <li class="controlIcon collapse" @click="hideControlWindow">
           <div class="iconWrapper" v-html="icons.collapse"></div>
         </li>
         <li class="controlIcon moveIcon">
@@ -117,6 +117,15 @@ const openSettingWindow = async () => {
   }
 };
 
+// Hide control window
+const hideControlWindow = async () => {
+  try {
+    await invoke('cmd_hide_control_window');
+  } catch (error) {
+    console.error('Failed to hide control window:', error);
+  }
+};
+
 // Open window by link
 const openWindowByLink = async () => {
   try {
@@ -182,7 +191,7 @@ onMounted(async () => {
 
     // Initialize windows configuration
     await configureWindows();
-    
+
     // Get initial pin state
     await getWindowPinState();
 

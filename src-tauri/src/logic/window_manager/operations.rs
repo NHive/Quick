@@ -2,6 +2,7 @@
 // 窗口操作的API实现
 
 use log::{debug, info};
+use std::sync::{Arc, RwLock};
 use tauri::utils::config::WebviewUrl;
 use tauri::{AppHandle, Error, Manager, Runtime, WebviewWindowBuilder};
 
@@ -10,6 +11,7 @@ use tauri::TitleBarStyle;
 
 use super::models::{WindowConfig, WindowInfo, WindowManagerState, WindowPosition, WindowStatus};
 use super::utils::{generate_window_label, get_window_position_and_size};
+use crate::communication::events::app_events::WindowFocusState;
 
 #[cfg(target_os = "macos")]
 use tauri::LogicalPosition;
@@ -463,8 +465,17 @@ pub fn switch_to_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(
         if window_exists {
             // 窗口存在，显示并带到前面
             if let Some(window) = app.get_webview_window(label) {
+                log::info!("切换到窗口 {}", label);
+
                 window.show()?;
                 window.set_focus()?;
+
+                if let Some(focus_state_arc) = app.try_state::<Arc<RwLock<WindowFocusState>>>() {
+                    if let Ok(mut focus_state) = focus_state_arc.write() {
+                        focus_state.set_current_quick_window(Some(label.to_string().clone()));
+                        focus_state.set_showing_quick_window(true);
+                    }
+                }
 
                 // 如果有共享位置且不是控制窗口，应用共享位置
                 if label != "control" {
@@ -754,6 +765,13 @@ pub fn create_or_switch_window<R: Runtime>(
         new_window.show()?;
         new_window.set_focus()?;
 
+        if let Some(focus_state_arc) = app.try_state::<Arc<RwLock<WindowFocusState>>>() {
+            if let Ok(mut focus_state) = focus_state_arc.write() {
+                focus_state.set_current_quick_window(Some(label.to_string().clone()));
+                focus_state.set_showing_quick_window(true);
+            }
+        }
+
         // 如果有共享位置且不是控制窗口，应用共享位置
         if label != "control" {
             if let Some(position) = &quick_common_position {
@@ -814,6 +832,20 @@ pub fn create_or_switch_window<R: Runtime>(
             if let Some(other_window) = app.get_webview_window(&hide_label) {
                 other_window.hide()?;
             }
+        }
+    }
+
+    Ok(())
+}
+
+// 隐藏quick窗口
+pub fn hide_quick_window<R: Runtime>(app: &AppHandle<R>) -> Result<(), Error> {
+    // 获取活跃快速窗口（一次只显示一个）
+    let active_window = get_active_window(app);
+
+    if let Some(window) = active_window {
+        if window.label != "control" {
+            hide_window(app, &window.label)?;
         }
     }
 

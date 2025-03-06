@@ -1,3 +1,4 @@
+// file_path: src/communication/command/window_setup.rs
 use std::sync::{Arc, RwLock};
 use tauri::{AppHandle, Manager, Runtime};
 

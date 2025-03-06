@@ -5,8 +5,9 @@ use tauri::{AppHandle, Runtime};
 use crate::logic::window_manager::models;
 use crate::logic::window_manager::operations;
 
-use crate::window::setting;
+use crate::window::{control, setting};
 
+// 通过url和title创建窗口
 #[tauri::command]
 pub async fn cmd_create_window<R: Runtime>(
     app_handle: AppHandle<R>,
@@ -19,6 +20,7 @@ pub async fn cmd_create_window<R: Runtime>(
     }
 }
 
+// 打开设置窗口
 #[tauri::command]
 pub async fn open_setting_window<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
     match setting::create_settings_window(&app_handle, "customSetting") {
@@ -89,6 +91,15 @@ pub async fn cmd_clear_cache<R: Runtime>(
     label: String,
 ) -> Result<(), String> {
     match operations::clear_window_cache(&app_handle, &label) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+// 隐藏控制窗口
+#[tauri::command]
+pub async fn cmd_hide_control_window<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
+    match control::hide_control_window(&app_handle) {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string()),
     }
