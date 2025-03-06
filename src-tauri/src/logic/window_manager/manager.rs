@@ -19,6 +19,8 @@ pub struct WindowManager {
     previous_active_window: Option<String>,
     /// 控制窗口的位置
     control_position: Option<WindowPosition>,
+    /// 快速窗口的共享位置 (新增字段)
+    quick_common_position: Option<WindowPosition>,
     /// 是否正在更新状态(避免递归更新)
     is_updating: bool,
     /// 最后一次更新的窗口标签
@@ -37,16 +39,40 @@ impl WindowManager {
             active_window: None,
             previous_active_window: None,
             control_position: None,
+            quick_common_position: None,
             is_updating: false,
             updating_source: None,
             last_update_time: std::time::Instant::now(),
-            update_lock_duration: 100, // 默认锁定时间
+            update_lock_duration: 100, // 默认锁定时间,
         }
     }
 
     /// 获取所有窗口信息
     pub fn get_windows(&self) -> Vec<WindowInfo> {
         self.windows.values().cloned().collect()
+    }
+
+    /// 获取快速窗口共享位置
+    pub fn get_quick_common_position(&self) -> Option<WindowPosition> {
+        self.quick_common_position
+    }
+
+    /// 更新快速窗口共享位置
+    pub fn update_quick_common_position(&mut self, position: WindowPosition) -> bool {
+        // 检查位置是否有显著变化
+        if let Some(existing) = &self.quick_common_position {
+            if (existing.x - position.x).abs() < 1.0
+                && (existing.y - position.y).abs() < 1.0
+                && (existing.width - position.width).abs() < 1.0
+                && (existing.height - position.height).abs() < 1.0
+            {
+                return false;
+            }
+        }
+
+        // 更新共享位置
+        self.quick_common_position = Some(position);
+        true
     }
 
     /// 获取特定窗口的信息
@@ -213,7 +239,11 @@ impl WindowManager {
     }
 
     /// 更新窗口位置
-    pub fn update_window_position(&mut self, label: &str, position: WindowPosition) -> bool {
+    pub fn update_window_manager_position(
+        &mut self,
+        label: &str,
+        position: WindowPosition,
+    ) -> bool {
         // 检查是否允许更新
         if !self.can_update(label) {
             return false;
@@ -231,8 +261,17 @@ impl WindowManager {
                 }
             }
 
+            // 判断是否为快速窗口 (非控制窗口)
+            let is_quick_window = label != "control";
+
             // 更新位置信息
-            window.position = Some(position);
+            window.position = Some(position.clone());
+
+            // 如果是快速窗口，同步更新共享位置
+            if is_quick_window {
+                self.update_quick_common_position(position);
+            }
+
             return true;
         }
 

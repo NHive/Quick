@@ -221,6 +221,7 @@ async fn get_window_manager_state(app_state: web::Data<AppState>) -> impl Respon
                 "active_window": window_manager.get_active_window(),
                 "previous_active_window": window_manager.get_previous_active_window(),
                 "control_position": window_manager.get_control_position(),
+                "quick_common_position": window_manager.get_quick_common_position(),
             });
             return HttpResponse::Ok().json(response);
         }

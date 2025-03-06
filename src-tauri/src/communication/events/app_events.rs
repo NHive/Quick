@@ -1,7 +1,7 @@
 // file_path: src/communication/events/app_events.rs
 use log::{error, info, warn};
 use std::collections::HashSet;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, RunEvent, Runtime, WindowEvent};
 
@@ -18,6 +18,7 @@ pub struct WindowFocusState {
     quick_window_labels: HashSet<String>, // 已注册的快速窗口标签集合
     last_focus_change: Instant,           // 上次焦点变化时间点
     hide_pending: bool,                   // 是否等待隐藏
+    is_pinned: bool,                      // 窗口是否处于Pin状态
 }
 
 impl WindowFocusState {
@@ -29,6 +30,7 @@ impl WindowFocusState {
             quick_window_labels: HashSet::new(),
             last_focus_change: Instant::now(),
             hide_pending: false,
+            is_pinned: true,
         }
     }
 
@@ -72,6 +74,16 @@ impl WindowFocusState {
     // 计算自上次焦点变化经过的时间
     pub fn time_since_last_focus_change(&self) -> Duration {
         Instant::now().duration_since(self.last_focus_change)
+    }
+
+    // 设置窗口是否处于Pin状态
+    pub fn set_pinned(&mut self, pinned: bool) {
+        self.is_pinned = pinned;
+    }
+
+    // 检查窗口是否处于Pin状态
+    pub fn is_pinned(&self) -> bool {
+        self.is_pinned
     }
 }
 
@@ -160,7 +172,7 @@ fn handle_window_focused<R: Runtime>(app_handle: &Arc<AppHandle<R>>, label: &str
 
     tauri::async_runtime::spawn(async move {
         // 获取焦点状态
-        let focus_state_arc = match app_handle_clone.try_state::<Arc<Mutex<WindowFocusState>>>() {
+        let focus_state_arc = match app_handle_clone.try_state::<Arc<RwLock<WindowFocusState>>>() {
             Some(state) => state,
             None => {
                 error!("无法获取窗口焦点状态");
@@ -170,7 +182,7 @@ fn handle_window_focused<R: Runtime>(app_handle: &Arc<AppHandle<R>>, label: &str
 
         // 更新焦点状态
         {
-            let mut focus_state = match focus_state_arc.lock() {
+            let mut focus_state = match focus_state_arc.write() {
                 Ok(state) => state,
                 Err(e) => {
                     error!("无法锁定焦点状态: {}", e);
@@ -201,13 +213,14 @@ fn handle_window_focused<R: Runtime>(app_handle: &Arc<AppHandle<R>>, label: &str
             // 延迟一小段时间再检查，避免焦点切换冲突
             tokio::time::sleep(Duration::from_millis(150)).await;
 
-            // 检查是否所有窗口都失去焦点且等待隐藏
+            // 检查是否所有窗口都失去焦点且等待隐藏，并且未被固定
             let should_hide = {
-                match focus_state_arc.lock() {
+                match focus_state_arc.write() {
                     Ok(state) => {
                         state.time_since_last_focus_change() >= Duration::from_millis(100)
-                            && state.is_hide_pending()
-                            && state.all_windows_unfocused()
+                            && state.is_hide_pending() // 等待隐藏
+                            && state.all_windows_unfocused() // 所有窗口都失去焦点
+                            && !state.is_pinned() // 未被固定
                     }
                     Err(e) => {
                         error!("检查隐藏条件时无法锁定焦点状态: {}", e);
@@ -221,7 +234,7 @@ fn handle_window_focused<R: Runtime>(app_handle: &Arc<AppHandle<R>>, label: &str
                 hide_all_managed_windows(&app_handle_clone).await;
 
                 // 重置隐藏等待标志
-                if let Ok(mut focus_state) = focus_state_arc.lock() {
+                if let Ok(mut focus_state) = focus_state_arc.write() {
                     focus_state.set_hide_pending(false);
                 }
             }
@@ -241,9 +254,9 @@ async fn hide_all_managed_windows<R: Runtime>(app_handle: &AppHandle<R>) {
     }
 
     // 隐藏所有快速窗口
-    if let Some(focus_state_arc) = app_handle.try_state::<Arc<Mutex<WindowFocusState>>>() {
+    if let Some(focus_state_arc) = app_handle.try_state::<Arc<RwLock<WindowFocusState>>>() {
         let quick_window_labels = {
-            match focus_state_arc.lock() {
+            match focus_state_arc.read() {
                 Ok(state) => state.get_quick_window_labels().clone(),
                 Err(e) => {
                     error!("获取快速窗口标签时无法锁定焦点状态: {}", e);

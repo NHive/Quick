@@ -16,6 +16,9 @@
         <li class="controlIcon settingIcon" @click="openSettingWindow">
           <div class="iconWrapper" v-html="icons.setting"></div>
         </li>
+        <li class="controlIcon pinIcon" @click="togglePinWindow">
+          <div class="iconWrapper" v-html="isPinned ? icons.pinFilled : icons.pinOutline"></div>
+        </li>
       </ul>
 
       <!-- Right side: Window tabs -->
@@ -59,6 +62,8 @@ interface WindowInfo {
 
 // Reactive windows list
 const windows = ref<WindowInfo[]>([]);
+// Track window pin state
+const isPinned = ref(false);
 
 // Configure windows
 const configureWindows = async () => {
@@ -137,6 +142,27 @@ const switchToWindow = async (label: string) => {
   }
 };
 
+// Toggle window pin state
+const togglePinWindow = async () => {
+  try {
+    isPinned.value = !isPinned.value;
+    await invoke('set_window_pin', { pin: isPinned.value });
+    console.log(`Window pin state set to: ${isPinned.value}`);
+  } catch (error) {
+    console.error('Failed to toggle window pin state:', error);
+  }
+};
+
+// Get current pin state
+const getWindowPinState = async () => {
+  try {
+    isPinned.value = await invoke('get_window_pin');
+    console.log(`Window pin state loaded: ${isPinned.value}`);
+  } catch (error) {
+    console.error('Failed to get window pin state:', error);
+  }
+};
+
 // Set up event listeners when component is mounted
 onMounted(async () => {
   try {
@@ -156,6 +182,9 @@ onMounted(async () => {
 
     // Initialize windows configuration
     await configureWindows();
+    
+    // Get initial pin state
+    await getWindowPinState();
 
     // Set up a periodic refresh to keep tabs in sync
     const refreshInterval = setInterval(refreshWindowsList, 3000);
@@ -245,7 +274,8 @@ onMounted(async () => {
   }
 
   .homeIcon,
-  .settingIcon {
+  .settingIcon,
+  .pinIcon {
     z-index: 15;
   }
 }

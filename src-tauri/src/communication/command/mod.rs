@@ -1,11 +1,13 @@
 // file_path: src/communication/command/mod.rs
 mod setup;
 mod window;
+mod window_setup;
 
 use tauri::generate_handler;
 
 use setup::*;
 use window::*;
+use window_setup::*;
 
 pub fn register_commands<R: tauri::Runtime>() -> impl Fn(tauri::Builder<R>) -> tauri::Builder<R> {
     move |app_builder| {
@@ -22,6 +24,8 @@ pub fn register_commands<R: tauri::Runtime>() -> impl Fn(tauri::Builder<R>) -> t
             set_setup,
             init_setup,
             cmd_clear_cache,
+            get_window_pin,
+            set_window_pin,
         ])
     }
 }

@@ -4,7 +4,7 @@ mod infrastructure;
 mod logic;
 mod window;
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, RwLock};
 use tauri::Manager;
 
 use tauri_plugin_autostart::MacosLauncher;
@@ -35,7 +35,7 @@ fn setup_app(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     init_window_manager(&app.app_handle())?;
 
     // 初始化窗口焦点状态追踪器
-    app.manage(Arc::new(Mutex::new(WindowFocusState::new())));
+    app.manage(Arc::new(RwLock::new(WindowFocusState::new())));
 
     // 管理应用路径
     let app_path = AppPath::new()?;

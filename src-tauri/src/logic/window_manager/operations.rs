@@ -1,7 +1,7 @@
 // file_path: src/logic/window_manager/operations.rs
 // 窗口操作的API实现
 
-use log::debug;
+use log::{debug, info};
 use tauri::utils::config::WebviewUrl;
 use tauri::{AppHandle, Error, Manager, Runtime, WebviewWindowBuilder};
 
@@ -38,199 +38,6 @@ pub fn configure_windows<R: Runtime>(
         std::io::ErrorKind::Other,
         "无法访问窗口管理器",
     )))
-}
-
-/// 创建或切换到窗口
-pub fn create_or_switch_window<R: Runtime>(
-    app: &AppHandle<R>,
-    url: &str,
-    title: &str,
-) -> Result<(), Error> {
-    let label = generate_window_label(url, title);
-
-    // 首先检查窗口是否存在
-    let window_exists = app.get_webview_window(&label).is_some();
-
-    // 记录要更新的窗口信息
-    let (_active_changed, to_hide) = {
-        if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
-            if let Ok(mut window_manager) = window_manager_state.0.try_lock() {
-                let was_active = window_manager
-                    .get_active_window()
-                    .map(|w| w.label == label)
-                    .unwrap_or(false);
-
-                // 如果窗口不存在，添加到管理器
-                if !window_exists {
-                    window_manager.add_window(label.clone(), title.to_string(), url.to_string());
-                } else if !was_active {
-                    // 窗口存在但不活跃，切换到它
-                    window_manager.switch_to_window(&label);
-                }
-
-                // 获取要隐藏的窗口
-                let to_hide = window_manager
-                    .get_windows()
-                    .into_iter()
-                    .filter(|w| {
-                        w.label != label
-                            && w.label != "control"
-                            && w.status == WindowStatus::Background
-                    })
-                    .map(|w| w.label)
-                    .collect::<Vec<_>>();
-
-                (was_active, to_hide)
-            } else {
-                (false, Vec::new())
-            }
-        } else {
-            (false, Vec::new())
-        }
-    };
-
-    if window_exists {
-        // 窗口已存在，只需切换到它
-        if let Some(window) = app.get_webview_window(&label) {
-            window.show()?;
-            window.set_focus()?;
-
-            // 将控制窗口定位在此快速窗口下方
-            position_control_window_below_quick(app, &label)?;
-
-            // 隐藏后台窗口
-            for hide_label in to_hide {
-                if let Some(other_window) = app.get_webview_window(&hide_label) {
-                    other_window.hide()?;
-                }
-            }
-        }
-    } else {
-        // 创建新窗口
-        let mut builder = WebviewWindowBuilder::new(app, &label, WebviewUrl::App(url.into()))
-            .title(title)
-            .fullscreen(false)
-            .inner_size(1280.0, 768.0)
-            .center()
-            .resizable(true)
-            .visible(false)
-            .skip_taskbar(true)
-            .decorations(false)
-            .always_on_top(true);
-
-        // 根据操作系统设置不同的窗口样式
-        #[cfg(target_os = "macos")]
-        {
-            builder = builder.title_bar_style(TitleBarStyle::Overlay);
-            builder = builder.hidden_title(true);
-        }
-
-        #[cfg(not(target_os = "macos"))]
-        {
-            builder = builder.decorations(false);
-            builder = builder.transparent(false);
-        }
-
-        // 构建窗口
-        let new_window = builder.build()?;
-
-        // 标记窗口为已加载
-        if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
-            if let Ok(mut window_manager) = window_manager_state.0.try_lock() {
-                window_manager.mark_window_loaded(&label);
-            }
-        }
-
-        // 显示新窗口
-        new_window.show()?;
-        new_window.set_focus()?;
-
-        // 将控制窗口定位在此快速窗口下方
-        tauri::async_runtime::spawn(async {
-            // 小延迟确保窗口完全渲染
-            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-        });
-
-        position_control_window_below_quick(app, &label)?;
-
-        // 隐藏后台窗口
-        for hide_label in to_hide {
-            if let Some(other_window) = app.get_webview_window(&hide_label) {
-                other_window.hide()?;
-            }
-        }
-    }
-
-    Ok(())
-}
-
-/// 切换到特定窗口
-pub fn switch_to_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(), Error> {
-    // 获取窗口信息和要隐藏的窗口
-    let (window_info, to_hide) = {
-        if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
-            if let Ok(mut window_manager) = window_manager_state.0.try_lock() {
-                let window_info = window_manager.get_window_info(label);
-
-                // 如果窗口存在，切换到它
-                if window_info.is_some() {
-                    window_manager.switch_to_window(label);
-                }
-
-                // 获取要隐藏的窗口
-                let to_hide = window_manager
-                    .get_windows()
-                    .into_iter()
-                    .filter(|w| {
-                        w.label != label
-                            && w.label != "control"
-                            && w.status == WindowStatus::Background
-                    })
-                    .map(|w| w.label)
-                    .collect::<Vec<_>>();
-
-                (window_info, to_hide)
-            } else {
-                (None, Vec::new())
-            }
-        } else {
-            (None, Vec::new())
-        }
-    };
-
-    if let Some(window_info) = window_info {
-        // 检查窗口是否已经存在于Tauri中
-        let window_exists = app.get_webview_window(label).is_some();
-
-        if window_exists {
-            // 窗口存在，显示并带到前面
-            if let Some(window) = app.get_webview_window(label) {
-                window.show()?;
-                window.set_focus()?;
-
-                // 将控制窗口定位在此快速窗口下方
-                position_control_window_below_quick(app, label)?;
-
-                // 隐藏其他窗口
-                for hide_label in to_hide {
-                    if let Some(other_window) = app.get_webview_window(&hide_label) {
-                        other_window.hide()?;
-                    }
-                }
-            }
-        } else {
-            // 窗口在管理器中存在但实际窗口未创建，需要创建
-            create_or_switch_window(app, &window_info.url, &window_info.title)?;
-        }
-    } else {
-        // 窗口不存在于管理器中，无法切换
-        return Err(Error::from(std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            format!("窗口 {} 不存在", label),
-        )));
-    }
-
-    Ok(())
 }
 
 /// 获取所有窗口信息
@@ -410,13 +217,13 @@ pub fn position_quick_window_above_control<R: Runtime>(
     if let Some(quick_window) = app.get_webview_window(quick_window_label) {
         #[cfg(target_os = "macos")]
         {
-            // macOS 使用逻辑坐标
+            // macOS 使用逻辑坐标,不需要缩放
             let _ = quick_window.set_position(tauri::LogicalPosition::new(quick_x, quick_y));
         }
 
         #[cfg(not(target_os = "macos"))]
         {
-            // Windows 使用物理坐标
+            // Windows 使用物理坐标,需要缩放
             if let Ok(scale_factor) = quick_window.scale_factor() {
                 let physical_x = quick_x * scale_factor;
                 let physical_y = quick_y * scale_factor;
@@ -435,7 +242,7 @@ pub fn position_quick_window_above_control<R: Runtime>(
 
         if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
             if let Ok(mut manager) = window_manager_state.0.try_lock() {
-                manager.update_window_position(quick_window_label, updated_position);
+                manager.update_window_manager_position(quick_window_label, updated_position);
             }
         }
     }
@@ -611,4 +418,404 @@ pub fn silence_create_window<R: Runtime>(
     }
 
     Ok(window)
+}
+
+pub fn switch_to_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(), Error> {
+    // 获取窗口信息、要隐藏的窗口和共享位置
+    let (window_info, to_hide, quick_common_position) = {
+        if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
+            if let Ok(mut window_manager) = window_manager_state.0.try_lock() {
+                let window_info = window_manager.get_window_info(label);
+
+                // 如果窗口存在，切换到它
+                if window_info.is_some() {
+                    window_manager.switch_to_window(label);
+                }
+
+                // 获取要隐藏的窗口
+                let to_hide = window_manager
+                    .get_windows()
+                    .into_iter()
+                    .filter(|w| {
+                        w.label != label
+                            && w.label != "control"
+                            && w.status == WindowStatus::Background
+                    })
+                    .map(|w| w.label)
+                    .collect::<Vec<_>>();
+
+                // 获取快速窗口共享位置
+                let quick_common_position = window_manager.get_quick_common_position();
+
+                (window_info, to_hide, quick_common_position)
+            } else {
+                (None, Vec::new(), None)
+            }
+        } else {
+            (None, Vec::new(), None)
+        }
+    };
+
+    if let Some(window_info) = window_info {
+        // 检查窗口是否已经存在于Tauri中
+        let window_exists = app.get_webview_window(label).is_some();
+
+        if window_exists {
+            // 窗口存在，显示并带到前面
+            if let Some(window) = app.get_webview_window(label) {
+                window.show()?;
+                window.set_focus()?;
+
+                // 如果有共享位置且不是控制窗口，应用共享位置
+                if label != "control" {
+                    if let Some(position) = &quick_common_position {
+                        {
+                            info!(
+                                "应用共享位置到窗口 {}: x={}, y={}, width={}, height={}",
+                                label, position.x, position.y, position.width, position.height
+                            );
+
+                            #[cfg(target_os = "macos")]
+                            {
+                                window
+                                    .set_position(LogicalPosition::new(position.x, position.y))?;
+                                window.set_size(tauri::LogicalSize::new(
+                                    position.width,
+                                    position.height,
+                                ))?;
+                            }
+
+                            #[cfg(not(target_os = "macos"))]
+                            {
+                                if let Ok(scale_factor) = window.scale_factor() {
+                                    let physical_x = position.x * scale_factor;
+                                    let physical_y = position.y * scale_factor;
+                                    let physical_width = position.width * scale_factor;
+                                    let physical_height = position.height * scale_factor;
+
+                                    window.set_position(PhysicalPosition::new(
+                                        physical_x as i32,
+                                        physical_y as i32,
+                                    ))?;
+                                    window.set_size(tauri::PhysicalSize::new(
+                                        physical_width as u32,
+                                        physical_height as u32,
+                                    ))?;
+                                } else {
+                                    // 降级方案
+                                    warn!("无法获取缩放因子，使用未缩放坐标");
+                                    window.set_position(PhysicalPosition::new(
+                                        position.x as i32,
+                                        position.y as i32,
+                                    ))?;
+                                    window.set_size(tauri::PhysicalSize::new(
+                                        position.width as u32,
+                                        position.height as u32,
+                                    ))?;
+                                }
+                            }
+                        }
+                    }
+                }
+                // 将控制窗口定位在此快速窗口下方
+                position_control_window_below_quick(app, label)?;
+
+                // 隐藏其他窗口
+                for hide_label in to_hide {
+                    if let Some(other_window) = app.get_webview_window(&hide_label) {
+                        other_window.hide()?;
+                    }
+                }
+            }
+        } else {
+            // 窗口在管理器中存在但实际窗口未创建，需要创建
+            create_or_switch_window(app, &window_info.url, &window_info.title)?;
+
+            // 创建窗口后，如果有共享位置，应用它
+            if label != "control" {
+                if let Some(position) = &quick_common_position {
+                    {
+                        if let Some(window) = app.get_webview_window(label) {
+                            debug!(
+                                "应用共享位置到新创建的窗口 {}: x={}, y={}, width={}, height={}",
+                                label, position.x, position.y, position.width, position.height
+                            );
+
+                            #[cfg(target_os = "macos")]
+                            {
+                                window
+                                    .set_position(LogicalPosition::new(position.x, position.y))?;
+                                window.set_size(tauri::LogicalSize::new(
+                                    position.width,
+                                    position.height,
+                                ))?;
+                            }
+
+                            #[cfg(not(target_os = "macos"))]
+                            {
+                                if let Ok(scale_factor) = window.scale_factor() {
+                                    let physical_x = position.x * scale_factor;
+                                    let physical_y = position.y * scale_factor;
+                                    let physical_width = position.width * scale_factor;
+                                    let physical_height = position.height * scale_factor;
+
+                                    window.set_position(PhysicalPosition::new(
+                                        physical_x as i32,
+                                        physical_y as i32,
+                                    ))?;
+                                    window.set_size(tauri::PhysicalSize::new(
+                                        physical_width as u32,
+                                        physical_height as u32,
+                                    ))?;
+                                } else {
+                                    // 降级方案
+                                    warn!("无法获取缩放因子，使用未缩放坐标");
+                                    window.set_position(PhysicalPosition::new(
+                                        position.x as i32,
+                                        position.y as i32,
+                                    ))?;
+                                    window.set_size(tauri::PhysicalSize::new(
+                                        position.width as u32,
+                                        position.height as u32,
+                                    ))?;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        // 窗口不存在于管理器中，无法切换
+        return Err(Error::from(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!("窗口 {} 不存在", label),
+        )));
+    }
+
+    Ok(())
+}
+
+pub fn create_or_switch_window<R: Runtime>(
+    app: &AppHandle<R>,
+    url: &str,
+    title: &str,
+) -> Result<(), Error> {
+    let label = generate_window_label(url, title);
+
+    // 首先检查窗口是否存在
+    let window_exists = app.get_webview_window(&label).is_some();
+
+    // 记录要更新的窗口信息
+    let (_active_changed, to_hide, quick_common_position) = {
+        if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
+            if let Ok(mut window_manager) = window_manager_state.0.try_lock() {
+                let was_active = window_manager
+                    .get_active_window()
+                    .map(|w| w.label == label)
+                    .unwrap_or(false);
+
+                // 如果窗口不存在，添加到管理器
+                if !window_exists {
+                    window_manager.add_window(label.clone(), title.to_string(), url.to_string());
+                } else if !was_active {
+                    // 窗口存在但不活跃，切换到它
+                    window_manager.switch_to_window(&label);
+                }
+
+                // 获取要隐藏的窗口
+                let to_hide = window_manager
+                    .get_windows()
+                    .into_iter()
+                    .filter(|w| {
+                        w.label != label
+                            && w.label != "control"
+                            && w.status == WindowStatus::Background
+                    })
+                    .map(|w| w.label)
+                    .collect::<Vec<_>>();
+
+                // 获取快速窗口共享位置
+                let quick_common_position = window_manager.get_quick_common_position();
+
+                (was_active, to_hide, quick_common_position)
+            } else {
+                (false, Vec::new(), None)
+            }
+        } else {
+            (false, Vec::new(), None)
+        }
+    };
+
+    if window_exists {
+        // 窗口已存在，只需切换到它
+        if let Some(window) = app.get_webview_window(&label) {
+            window.show()?;
+            window.set_focus()?;
+
+            // 如果有共享位置且不是控制窗口，应用共享位置
+            if label != "control" {
+                if let Some(position) = &quick_common_position {
+                    {
+                        debug!(
+                            "应用共享位置到窗口 {}: x={}, y={}, width={}, height={}",
+                            label, position.x, position.y, position.width, position.height
+                        );
+
+                        #[cfg(target_os = "macos")]
+                        {
+                            window.set_position(LogicalPosition::new(position.x, position.y))?;
+                            window.set_size(tauri::LogicalSize::new(
+                                position.width,
+                                position.height,
+                            ))?;
+                        }
+
+                        #[cfg(not(target_os = "macos"))]
+                        {
+                            if let Ok(scale_factor) = window.scale_factor() {
+                                let physical_x = position.x * scale_factor;
+                                let physical_y = position.y * scale_factor;
+                                let physical_width = position.width * scale_factor;
+                                let physical_height = position.height * scale_factor;
+
+                                window.set_position(PhysicalPosition::new(
+                                    physical_x as i32,
+                                    physical_y as i32,
+                                ))?;
+                                window.set_size(tauri::PhysicalSize::new(
+                                    physical_width as u32,
+                                    physical_height as u32,
+                                ))?;
+                            } else {
+                                // 降级方案
+                                warn!("无法获取缩放因子，使用未缩放坐标");
+                                window.set_position(PhysicalPosition::new(
+                                    position.x as i32,
+                                    position.y as i32,
+                                ))?;
+                                window.set_size(tauri::PhysicalSize::new(
+                                    position.width as u32,
+                                    position.height as u32,
+                                ))?;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 将控制窗口定位在此快速窗口下方
+            position_control_window_below_quick(app, &label)?;
+
+            // 隐藏后台窗口
+            for hide_label in to_hide {
+                if let Some(other_window) = app.get_webview_window(&hide_label) {
+                    other_window.hide()?;
+                }
+            }
+        }
+    } else {
+        // 创建新窗口
+        let mut builder = WebviewWindowBuilder::new(app, &label, WebviewUrl::App(url.into()))
+            .title(title)
+            .fullscreen(false)
+            .inner_size(1280.0, 768.0)
+            .center()
+            .resizable(true)
+            .visible(false)
+            .skip_taskbar(true)
+            .decorations(false)
+            .always_on_top(true);
+
+        // 根据操作系统设置不同的窗口样式
+        #[cfg(target_os = "macos")]
+        {
+            builder = builder.title_bar_style(TitleBarStyle::Overlay);
+            builder = builder.hidden_title(true);
+        }
+
+        #[cfg(not(target_os = "macos"))]
+        {
+            builder = builder.decorations(false);
+            builder = builder.transparent(false);
+        }
+
+        // 构建窗口
+        let new_window = builder.build()?;
+
+        // 标记窗口为已加载
+        if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
+            if let Ok(mut window_manager) = window_manager_state.0.try_lock() {
+                window_manager.mark_window_loaded(&label);
+            }
+        }
+
+        // 显示新窗口
+        new_window.show()?;
+        new_window.set_focus()?;
+
+        // 如果有共享位置且不是控制窗口，应用共享位置
+        if label != "control" {
+            if let Some(position) = &quick_common_position {
+                {
+                    debug!(
+                        "应用共享位置到新创建的窗口 {}: x={}, y={}, width={}, height={}",
+                        label, position.x, position.y, position.width, position.height
+                    );
+
+                    #[cfg(target_os = "macos")]
+                    {
+                        new_window.set_position(LogicalPosition::new(position.x, position.y))?;
+                        new_window
+                            .set_size(tauri::LogicalSize::new(position.width, position.height))?;
+                    }
+
+                    #[cfg(not(target_os = "macos"))]
+                    {
+                        if let Ok(scale_factor) = new_window.scale_factor() {
+                            let physical_x = position.x * scale_factor;
+                            let physical_y = position.y * scale_factor;
+                            let physical_width = position.width * scale_factor;
+                            let physical_height = position.height * scale_factor;
+
+                            new_window.set_position(PhysicalPosition::new(
+                                physical_x as i32,
+                                physical_y as i32,
+                            ))?;
+                            new_window.set_size(tauri::PhysicalSize::new(
+                                physical_width as u32,
+                                physical_height as u32,
+                            ))?;
+                        } else {
+                            // 降级方案
+                            warn!("无法获取缩放因子，使用未缩放坐标");
+                            new_window.set_position(PhysicalPosition::new(
+                                position.x as i32,
+                                position.y as i32,
+                            ))?;
+                            new_window.set_size(tauri::PhysicalSize::new(
+                                position.width as u32,
+                                position.height as u32,
+                            ))?;
+                        }
+                    }
+                }
+            }
+        }
+        // 小延迟确保窗口完全渲染
+        tauri::async_runtime::spawn(async {
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        });
+
+        position_control_window_below_quick(app, &label)?;
+
+        // 隐藏后台窗口
+        for hide_label in to_hide {
+            if let Some(other_window) = app.get_webview_window(&hide_label) {
+                other_window.hide()?;
+            }
+        }
+    }
+
+    Ok(())
 }
