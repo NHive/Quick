@@ -11,6 +11,8 @@ use tauri::LogicalPosition;
 use tauri::LogicalSize;
 
 #[cfg(not(target_os = "macos"))]
+use log::warn;
+#[cfg(not(target_os = "macos"))]
 use tauri::PhysicalPosition;
 #[cfg(not(target_os = "macos"))]
 use tauri::PhysicalSize;
