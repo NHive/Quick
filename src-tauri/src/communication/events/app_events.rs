@@ -21,6 +21,9 @@ pub struct WindowFocusState {
     is_pinned: bool,                      // 窗口是否处于Pin状态
     quick_window_current: Option<String>, // 当前活动的快速窗口标签
     is_showing_quick_window: bool,        // 是否正在显示快速窗口
+    control_focus_restore_id: u64,        // 控制窗口焦点防抖ID
+    is_dragging: bool,                    // 是否正在拖动窗口
+    last_move_time: Instant,              // 上次窗口移动时间
 }
 
 impl WindowFocusState {
@@ -35,6 +38,9 @@ impl WindowFocusState {
             is_pinned: false,
             quick_window_current: None,
             is_showing_quick_window: false,
+            control_focus_restore_id: 0,
+            is_dragging: false,
+            last_move_time: Instant::now(),
         }
     }
 
@@ -65,11 +71,6 @@ impl WindowFocusState {
         !self.control_focused && !self.quick_windows_focused
     }
 
-    // 获取所有快速窗口标签
-    pub fn get_quick_window_labels(&self) -> &HashSet<String> {
-        &self.quick_window_labels
-    }
-
     // 检查是否有隐藏操作等待执行
     pub fn is_hide_pending(&self) -> bool {
         self.hide_pending
@@ -78,6 +79,11 @@ impl WindowFocusState {
     // 计算自上次焦点变化经过的时间
     pub fn time_since_last_focus_change(&self) -> Duration {
         Instant::now().duration_since(self.last_focus_change)
+    }
+
+    // 计算自上次窗口移动经过的时间
+    pub fn time_since_last_move(&self) -> Duration {
+        Instant::now().duration_since(self.last_move_time)
     }
 
     // 设置窗口是否处于Pin状态
@@ -105,9 +111,33 @@ impl WindowFocusState {
         self.is_showing_quick_window = showing;
     }
 
-    // 检查是否正在显示快速窗口
-    pub fn is_showing_quick_window(&self) -> bool {
-        self.is_showing_quick_window
+    // 获取并增加焦点恢复ID
+    pub fn next_focus_restore_id(&mut self) -> u64 {
+        self.control_focus_restore_id += 1;
+        self.control_focus_restore_id
+    }
+
+    // 检查焦点恢复ID是否匹配
+    pub fn is_latest_focus_restore_id(&self, id: u64) -> bool {
+        id == self.control_focus_restore_id
+    }
+
+    // 设置窗口拖动状态
+    pub fn set_dragging(&mut self, dragging: bool) {
+        self.is_dragging = dragging;
+        if dragging {
+            self.last_move_time = Instant::now();
+        }
+    }
+
+    // 更新窗口移动时间
+    pub fn update_move_time(&mut self) {
+        self.last_move_time = Instant::now();
+    }
+
+    // 检查是否正在拖动窗口
+    pub fn is_dragging(&self) -> bool {
+        self.is_dragging
     }
 }
 
@@ -140,6 +170,14 @@ fn handle_window_moved<R: Runtime>(
     let app_handle_clone = app_handle.clone();
     let label_clone = label.to_string();
 
+    // 更新移动时间和拖动状态
+    if let Some(focus_state_arc) = app_handle.try_state::<Arc<RwLock<WindowFocusState>>>() {
+        if let Ok(mut focus_state) = focus_state_arc.write() {
+            focus_state.update_move_time();
+            focus_state.set_dragging(true);
+        }
+    }
+
     tauri::async_runtime::spawn(async move {
         match label_clone.as_str() {
             "control" => {
@@ -166,6 +204,20 @@ fn handle_window_moved<R: Runtime>(
             }
             _ => {} // 忽略其他窗口
         }
+
+        // 延迟一段时间后重置拖动状态
+        // 这是为了在用户停止拖动后，给一个缓冲时间再接受焦点事件
+        tokio::time::sleep(Duration::from_millis(300)).await;
+
+        if let Some(focus_state_arc) = app_handle_clone.try_state::<Arc<RwLock<WindowFocusState>>>()
+        {
+            if let Ok(mut focus_state) = focus_state_arc.write() {
+                // 只有当距离上次移动已经超过200ms才重置拖动状态
+                if focus_state.time_since_last_move() >= Duration::from_millis(200) {
+                    focus_state.set_dragging(false);
+                }
+            }
+        }
     });
 }
 
@@ -177,6 +229,13 @@ fn handle_window_resized<R: Runtime>(
 ) {
     let app_handle_clone = app_handle.clone();
     let label_clone = label.to_string();
+
+    // 更新移动时间和拖动状态
+    if let Some(focus_state_arc) = app_handle.try_state::<Arc<RwLock<WindowFocusState>>>() {
+        if let Ok(mut focus_state) = focus_state_arc.write() {
+            focus_state.update_move_time();
+        }
+    }
 
     tauri::async_runtime::spawn(async move {
         match label_clone.as_str() {
@@ -198,31 +257,61 @@ fn handle_window_resized<R: Runtime>(
     });
 }
 
-// 将焦点还给快速窗口
-async fn return_focus_to_quick_window<R: Runtime>(app_handle: &AppHandle<R>) {
-    if let Some(focus_state_arc) = app_handle.try_state::<Arc<RwLock<WindowFocusState>>>() {
-        let current_quick_window = {
+// 将焦点还给快速窗口（带防抖功能）
+async fn return_focus_to_quick_window<R: Runtime>(
+    app_handle: &AppHandle<R>,
+    focus_restore_id: u64,
+) {
+    // 延迟300ms执行（防抖延迟）
+    tokio::time::sleep(Duration::from_millis(300)).await;
+
+    // 检查是否是最新的焦点恢复请求和拖动状态
+    let (should_restore, current_quick_window) = {
+        if let Some(focus_state_arc) = app_handle.try_state::<Arc<RwLock<WindowFocusState>>>() {
             match focus_state_arc.read() {
-                Ok(state) => state.get_current_quick_window().clone(),
+                Ok(state) => {
+                    let is_latest = state.is_latest_focus_restore_id(focus_restore_id);
+                    let is_dragging = state.is_dragging();
+                    let quick_window = state.get_current_quick_window().clone();
+
+                    // 如果正在拖动或不是最新ID，则不恢复焦点
+                    (!is_dragging && is_latest, quick_window)
+                }
                 Err(e) => {
-                    error!("获取当前快速窗口标签时无法锁定焦点状态: {}", e);
+                    error!("获取焦点状态时出错: {}", e);
                     return;
                 }
             }
-        };
+        } else {
+            return;
+        }
+    };
 
-        if let Some(quick_window_label) = current_quick_window {
-            if let Some(quick_window) = app_handle.get_webview_window(&quick_window_label) {
-                info!("将焦点还给快速窗口: {}", quick_window_label);
-                if let Err(e) = quick_window.set_focus() {
-                    warn!("无法将焦点设置到快速窗口 {}: {}", quick_window_label, e);
-                }
-            } else {
-                warn!("找不到快速窗口: {}", quick_window_label);
+    if !should_restore {
+        info!(
+            "跳过焦点恢复 (ID: {})：不是最新请求或正在拖动",
+            focus_restore_id
+        );
+        return;
+    }
+
+    if let Some(quick_window_label) = current_quick_window {
+        if let Some(quick_window) = app_handle.get_webview_window(&quick_window_label) {
+            info!(
+                "将焦点还给快速窗口: {} (ID: {})",
+                quick_window_label, focus_restore_id
+            );
+            if let Err(e) = quick_window.set_focus() {
+                warn!("无法将焦点设置到快速窗口 {}: {}", quick_window_label, e);
             }
         } else {
-            info!("没有当前活动的快速窗口，无法还焦点");
+            warn!("找不到快速窗口: {}", quick_window_label);
         }
+    } else {
+        info!(
+            "没有当前活动的快速窗口，无法还焦点 (ID: {})",
+            focus_restore_id
+        );
     }
 }
 
@@ -240,6 +329,36 @@ fn handle_window_focused<R: Runtime>(app_handle: &Arc<AppHandle<R>>, label: &str
                 return;
             }
         };
+
+        // 创建焦点恢复ID（用于防抖）
+        let focus_restore_id = if label_clone == "control" && focused {
+            match focus_state_arc.write() {
+                Ok(mut state) => state.next_focus_restore_id(),
+                Err(e) => {
+                    error!("生成焦点恢复ID时出错: {}", e);
+                    return;
+                }
+            }
+        } else {
+            0 // 非控制窗口焦点事件不需要ID
+        };
+
+        // 是否正在拖动
+        let is_dragging = {
+            match focus_state_arc.read() {
+                Ok(state) => state.is_dragging(),
+                Err(e) => {
+                    error!("检查拖动状态时出错: {}", e);
+                    false
+                }
+            }
+        };
+
+        // 如果正在拖动并且是控制窗口获得焦点，跳过处理
+        if is_dragging && label_clone == "control" && focused {
+            info!("跳过控制窗口焦点处理：正在拖动窗口");
+            return;
+        }
 
         // 更新焦点状态
         {
@@ -260,7 +379,11 @@ fn handle_window_focused<R: Runtime>(app_handle: &Arc<AppHandle<R>>, label: &str
             match label_clone.as_str() {
                 "control" => focus_state.set_control_focused(focused),
                 label if label.starts_with("quick_") => {
-                    focus_state.set_quick_window_focused(focused)
+                    focus_state.set_quick_window_focused(focused);
+                    // 如果快速窗口获得焦点，更新当前活动窗口
+                    if focused {
+                        focus_state.set_current_quick_window(Some(label.to_string()));
+                    }
                 }
                 _ => {} // 忽略其他窗口
             }
@@ -271,24 +394,8 @@ fn handle_window_focused<R: Runtime>(app_handle: &Arc<AppHandle<R>>, label: &str
 
         // 处理控制窗口获取焦点的情况
         if label_clone == "control" && focused {
-            // 延迟100ms后将焦点还给快速窗口
-            let app_handle_for_focus = app_handle_clone.clone();
-            tokio::time::sleep(Duration::from_millis(100)).await;
-
-            // 再次检查控制窗口是否仍有焦点（防止用户在100ms内已切换焦点）
-            let still_focused = {
-                match focus_state_arc.read() {
-                    Ok(state) => state.control_focused,
-                    Err(e) => {
-                        error!("检查控制窗口焦点状态时无法锁定焦点状态: {}", e);
-                        false
-                    }
-                }
-            };
-
-            if still_focused {
-                return_focus_to_quick_window(&app_handle_for_focus).await;
-            }
+            // 使用防抖机制还原焦点
+            return_focus_to_quick_window(&app_handle_clone, focus_restore_id).await;
         }
 
         // 如果窗口失去焦点，延时检查是否应该隐藏所有窗口
@@ -296,7 +403,7 @@ fn handle_window_focused<R: Runtime>(app_handle: &Arc<AppHandle<R>>, label: &str
             // 延迟一小段时间再检查，避免焦点切换冲突
             tokio::time::sleep(Duration::from_millis(150)).await;
 
-            // 检查是否所有窗口都失去焦点且等待隐藏，并且未被固定
+            // 检查是否所有窗口都失去焦点且等待隐藏，并且未被固定且不在拖动中
             let should_hide = {
                 match focus_state_arc.write() {
                     Ok(state) => {
@@ -304,6 +411,7 @@ fn handle_window_focused<R: Runtime>(app_handle: &Arc<AppHandle<R>>, label: &str
                             && state.is_hide_pending() // 等待隐藏
                             && state.all_windows_unfocused() // 所有窗口都失去焦点
                             && !state.is_pinned() // 未被固定
+                            && !state.is_dragging() // 不在拖动中
                     }
                     Err(e) => {
                         error!("检查隐藏条件时无法锁定焦点状态: {}", e);
