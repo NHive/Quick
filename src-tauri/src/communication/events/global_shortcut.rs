@@ -7,7 +7,7 @@ use tauri_plugin_global_shortcut::{
 use crate::window::control;
 
 pub fn global_shortcuts_handle(app: &tauri::AppHandle, shortcut: &Shortcut, event: ShortcutEvent) {
-    let open_control_window = Shortcut::new(Some(Modifiers::ALT), Code::KeyC);
+    let open_control_window = Shortcut::new(Some(Modifiers::ALT), Code::KeyG);
     if shortcut == &open_control_window && event.state == ShortcutState::Released {
         let _ = control::toggle_control_window::<tauri::Wry>(app);
     }
@@ -22,5 +22,5 @@ pub fn register_shortcuts(app: &App) -> Result<(), Box<dyn std::error::Error>> {
 
 /// 打开控制窗口的快捷键
 fn open_control_window_shortcut() -> Shortcut {
-    Shortcut::new(Some(Modifiers::ALT), Code::KeyC)
+    Shortcut::new(Some(Modifiers::ALT), Code::KeyG)
 }
