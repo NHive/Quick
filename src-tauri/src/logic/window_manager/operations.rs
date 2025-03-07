@@ -65,8 +65,9 @@ pub fn get_previous_active_window<R: Runtime>(app: &AppHandle<R>) -> Option<Wind
     None
 }
 
-/// 显示前一个活跃窗口
+/// 显示前一个活跃窗口,如果前一个活跃窗口不存在，则显示已注册的第一个窗口
 pub fn show_previous_window<R: Runtime>(app: &AppHandle<R>) -> Result<(), Error> {
+    // 获取前一个活跃窗口的标签
     let previous_label = {
         if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
             if let Ok(window_manager) = window_manager_state.0.try_lock() {
@@ -81,8 +82,31 @@ pub fn show_previous_window<R: Runtime>(app: &AppHandle<R>) -> Result<(), Error>
         }
     };
 
-    if let Some(label) = previous_label {
+    // 如果前一个活跃窗口不存在，则获取第一个非控制窗口
+    let window_label = if previous_label.is_none() {
+        // 获取所有窗口
+        let windows = get_all_windows(app);
+
+        // 找到第一个非控制窗口
+        let first_window = windows
+            .into_iter()
+            .find(|w| w.label != "control")
+            .map(|w| w.label);
+
+        info!(
+            "前一个活跃窗口不存在，使用第一个可用窗口: {:?}",
+            first_window
+        );
+        first_window
+    } else {
+        info!("显示前一个活跃窗口: {:?}", previous_label);
+        previous_label
+    };
+
+    // 如果有可用窗口，切换到该窗口
+    if let Some(label) = window_label {
         switch_to_window(app, &label)?;
+        position_control_window_below_quick(app, &label)?;
     }
 
     Ok(())
