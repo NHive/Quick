@@ -1,7 +1,7 @@
 // file_path: src/logic/window_manager/operations.rs
 // 窗口操作的API实现
 
-use log::{debug, info};
+use log::{debug, info, warn};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tauri::utils::config::WebviewUrl;
@@ -10,18 +10,12 @@ use tauri::{AppHandle, Error, Manager, Runtime, WebviewWindowBuilder};
 #[cfg(target_os = "macos")]
 use tauri::TitleBarStyle;
 
-use super::models::{WindowConfig, WindowInfo, WindowManagerState, WindowPosition, WindowStatus};
-use super::utils::{generate_window_label, get_window_position_and_size};
+use super::models::{WindowConfig, WindowInfo, WindowManagerState, WindowStatus};
+use super::utils::{
+    apply_position_to_window, generate_window_label, get_window_position_and_size,
+    set_window_position,
+};
 use crate::communication::events::app_events::WindowFocusState;
-
-#[cfg(target_os = "macos")]
-use tauri::LogicalPosition;
-
-#[cfg(not(target_os = "macos"))]
-use tauri::PhysicalPosition;
-
-#[cfg(not(target_os = "macos"))]
-use log::warn;
 
 /// 配置窗口列表
 pub fn configure_windows<R: Runtime>(
@@ -147,53 +141,7 @@ pub fn position_control_window_below_quick<R: Runtime>(
 
     // 如果允许更新，则设置控制窗口位置
     if can_update {
-        #[cfg(target_os = "macos")]
-        {
-            control_window.set_position(LogicalPosition::new(control_x, control_y))?;
-        }
-
-        #[cfg(not(target_os = "macos"))]
-        {
-            // 与 position_quick_window_above_control 保持一致的坐标转换
-            if let Ok(scale_factor) = control_window.scale_factor() {
-                let physical_x = control_x * scale_factor;
-                let physical_y = control_y * scale_factor;
-
-                debug!(
-                    "设置控制窗口物理位置: physical_x={}, physical_y={}, 缩放因子: {}",
-                    physical_x, physical_y, scale_factor
-                );
-
-                control_window
-                    .set_position(PhysicalPosition::new(physical_x as i32, physical_y as i32))?;
-            } else {
-                // 降级方案，如果无法获取缩放因子
-                warn!("无法获取缩放因子，使用未缩放坐标");
-                control_window
-                    .set_position(PhysicalPosition::new(control_x as i32, control_y as i32))?;
-            }
-        }
-
-        // 更新窗口管理器位置
-        let updated_position = WindowPosition {
-            x: control_x,
-            y: control_y,
-            width: control_position.width,
-            height: control_position.height,
-        };
-
-        if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
-            if let Ok(mut window_manager) = window_manager_state.0.try_lock() {
-                info!(
-                    "更新控制窗口位置: x={}, y={}, width={}, height={}",
-                    updated_position.x,
-                    updated_position.y,
-                    updated_position.width,
-                    updated_position.height
-                );
-                window_manager.update_control_position(updated_position);
-            }
-        }
+        set_window_position(&control_window, control_x, control_y)?;
     }
 
     // 显示控制窗口
@@ -226,36 +174,7 @@ pub fn position_quick_window_above_control<R: Runtime>(
 
     // 设置快速窗口位置
     if let Some(quick_window) = app.get_webview_window(quick_window_label) {
-        #[cfg(target_os = "macos")]
-        {
-            // macOS 使用逻辑坐标,不需要缩放
-            let _ = quick_window.set_position(tauri::LogicalPosition::new(quick_x, quick_y));
-        }
-
-        #[cfg(not(target_os = "macos"))]
-        {
-            // Windows 使用物理坐标,需要缩放
-            if let Ok(scale_factor) = quick_window.scale_factor() {
-                let physical_x = quick_x * scale_factor;
-                let physical_y = quick_y * scale_factor;
-                let _ =
-                    quick_window.set_position(tauri::PhysicalPosition::new(physical_x, physical_y));
-            }
-        }
-
-        // 更新窗口管理器位置
-        let updated_position = WindowPosition {
-            x: quick_x,
-            y: quick_y,
-            width: quick_position.width,
-            height: quick_position.height,
-        };
-
-        if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
-            if let Ok(mut manager) = window_manager_state.0.try_lock() {
-                manager.update_window_manager_position(quick_window_label, updated_position);
-            }
-        }
+        set_window_position(&quick_window, quick_x, quick_y)?;
     }
 
     Ok(())
@@ -370,7 +289,7 @@ pub fn silence_create_window<R: Runtime>(
     let window_exists = app.get_webview_window(label);
 
     if window_exists.is_some() {
-        log::warn!("窗口 {} 已存在，无需创建", label);
+        warn!("窗口 {} 已存在，无需创建", label);
         return Ok(window_exists.unwrap());
     }
 
@@ -478,45 +397,7 @@ pub fn switch_to_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(
                                 label, position.x, position.y, position.width, position.height
                             );
 
-                            #[cfg(target_os = "macos")]
-                            {
-                                window
-                                    .set_position(LogicalPosition::new(position.x, position.y))?;
-                                window.set_size(tauri::LogicalSize::new(
-                                    position.width,
-                                    position.height,
-                                ))?;
-                            }
-
-                            #[cfg(not(target_os = "macos"))]
-                            {
-                                if let Ok(scale_factor) = window.scale_factor() {
-                                    let physical_x = position.x * scale_factor;
-                                    let physical_y = position.y * scale_factor;
-                                    let physical_width = position.width * scale_factor;
-                                    let physical_height = position.height * scale_factor;
-
-                                    window.set_position(PhysicalPosition::new(
-                                        physical_x as i32,
-                                        physical_y as i32,
-                                    ))?;
-                                    window.set_size(tauri::PhysicalSize::new(
-                                        physical_width as u32,
-                                        physical_height as u32,
-                                    ))?;
-                                } else {
-                                    // 降级方案
-                                    warn!("无法获取缩放因子，使用未缩放坐标");
-                                    window.set_position(PhysicalPosition::new(
-                                        position.x as i32,
-                                        position.y as i32,
-                                    ))?;
-                                    window.set_size(tauri::PhysicalSize::new(
-                                        position.width as u32,
-                                        position.height as u32,
-                                    ))?;
-                                }
-                            }
+                            apply_position_to_window(&window, position)?;
                         }
                     }
                 }
@@ -658,42 +539,7 @@ pub fn create_or_switch_window<R: Runtime>(
                         label, position.x, position.y, position.width, position.height
                     );
 
-                    #[cfg(target_os = "macos")]
-                    {
-                        new_window.set_position(LogicalPosition::new(position.x, position.y))?;
-                        new_window
-                            .set_size(tauri::LogicalSize::new(position.width, position.height))?;
-                    }
-
-                    #[cfg(not(target_os = "macos"))]
-                    {
-                        if let Ok(scale_factor) = new_window.scale_factor() {
-                            let physical_x = position.x * scale_factor;
-                            let physical_y = position.y * scale_factor;
-                            let physical_width = position.width * scale_factor;
-                            let physical_height = position.height * scale_factor;
-
-                            new_window.set_position(PhysicalPosition::new(
-                                physical_x as i32,
-                                physical_y as i32,
-                            ))?;
-                            new_window.set_size(tauri::PhysicalSize::new(
-                                physical_width as u32,
-                                physical_height as u32,
-                            ))?;
-                        } else {
-                            // 降级方案
-                            warn!("无法获取缩放因子，使用未缩放坐标");
-                            new_window.set_position(PhysicalPosition::new(
-                                position.x as i32,
-                                position.y as i32,
-                            ))?;
-                            new_window.set_size(tauri::PhysicalSize::new(
-                                position.width as u32,
-                                position.height as u32,
-                            ))?;
-                        }
-                    }
+                    apply_position_to_window(&new_window, position)?;
                 }
             }
         }

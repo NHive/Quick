@@ -8,6 +8,7 @@ use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, RunEvent, Runtim
 use crate::logic::window_manager::operations::{
     position_control_window_below_quick, sync_positions_after_control_moved,
 };
+use crate::logic::window_manager::utils; // 确保导入utils模块
 
 use crate::logic::window_manager::models::WindowManagerState;
 
@@ -178,6 +179,11 @@ fn handle_window_moved<R: Runtime>(
         }
     }
 
+    // 如果是快速窗口，更新WindowManagerState
+    if label.starts_with("quick_") {
+        update_window_manager_position(app_handle, label);
+    }
+
     tauri::async_runtime::spawn(async move {
         match label_clone.as_str() {
             "control" => {
@@ -237,6 +243,11 @@ fn handle_window_resized<R: Runtime>(
         }
     }
 
+    // 如果是快速窗口，更新WindowManagerState
+    if label.starts_with("quick_") {
+        update_window_manager_position(app_handle, label);
+    }
+
     tauri::async_runtime::spawn(async move {
         match label_clone.as_str() {
             "control" => {
@@ -255,6 +266,28 @@ fn handle_window_resized<R: Runtime>(
             _ => {} // 忽略其他窗口
         }
     });
+}
+
+// 更新WindowManagerState中的窗口位置信息 - 使用utils中的函数
+fn update_window_manager_position<R: Runtime>(app_handle: &Arc<AppHandle<R>>, label: &str) {
+    if let Some(window_manager_state) = app_handle.try_state::<WindowManagerState>() {
+        if let Ok(mut window_manager) = window_manager_state.0.lock() {
+            // 使用utils中的函数获取规范化的窗口位置
+            match utils::get_window_position_and_size(app_handle, label) {
+                Ok(window_position) => {
+                    // 更新位置信息
+                    if window_manager.update_window_manager_position(label, window_position) {
+                        info!("已更新窗口 {} 的位置信息", label);
+                    }
+                }
+                Err(e) => {
+                    error!("获取窗口 {} 的位置和大小时出错: {}", label, e);
+                }
+            }
+        } else {
+            error!("无法锁定窗口管理器状态");
+        }
+    }
 }
 
 // 将焦点还给快速窗口（带防抖功能）

@@ -17,8 +17,6 @@ pub struct WindowManager {
     active_window: Option<String>,
     /// 前一个激活的窗口标签
     previous_active_window: Option<String>,
-    /// 控制窗口的位置
-    control_position: Option<WindowPosition>,
     /// 快速窗口的共享位置
     quick_common_position: Option<WindowPosition>,
     /// 是否正在更新状态(避免递归更新)
@@ -38,7 +36,6 @@ impl WindowManager {
             windows: HashMap::new(),
             active_window: None,
             previous_active_window: None,
-            control_position: None,
             quick_common_position: None,
             is_updating: false,
             updating_source: None,
@@ -215,24 +212,6 @@ impl WindowManager {
         false
     }
 
-    /// 更新控制窗口位置
-    pub fn update_control_position(&mut self, position: WindowPosition) -> bool {
-        // 检查位置是否有显著变化
-        if let Some(existing) = &self.control_position {
-            if (existing.x - position.x).abs() < 1.0
-                && (existing.y - position.y).abs() < 1.0
-                && (existing.width - position.width).abs() < 1.0
-                && (existing.height - position.height).abs() < 1.0
-            {
-                return false;
-            }
-        }
-
-        // 更新控制窗口位置
-        self.control_position = Some(position);
-        true
-    }
-
     /// 更新窗口位置
     pub fn update_window_manager_position(
         &mut self,
@@ -266,11 +245,6 @@ impl WindowManager {
         }
 
         false
-    }
-
-    /// 获取控制窗口位置
-    pub fn get_control_position(&self) -> Option<WindowPosition> {
-        self.control_position
     }
 
     /// 检查是否允许窗口进行更新

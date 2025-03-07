@@ -1,8 +1,19 @@
 // file_path: src/logic/window_manager/utils.rs
 // 窗口管理相关的工具函数
 
+use log::debug;
 use sha2::{Digest, Sha256};
-use tauri::{AppHandle, Error, Manager, Runtime};
+use tauri::{AppHandle, Error, Manager, Runtime, WebviewWindow};
+
+#[cfg(target_os = "macos")]
+use tauri::LogicalPosition;
+#[cfg(target_os = "macos")]
+use tauri::LogicalSize;
+
+#[cfg(not(target_os = "macos"))]
+use tauri::PhysicalPosition;
+#[cfg(not(target_os = "macos"))]
+use tauri::PhysicalSize;
 
 use super::models::WindowPosition;
 
@@ -75,4 +86,109 @@ pub fn get_window_position_and_size<R: Runtime>(
             height: size.height,
         })
     }
+}
+
+/// 设置窗口位置，处理不同平台的差异
+pub fn set_window_position<R: Runtime>(
+    window: &WebviewWindow<R>,
+    x: f64,
+    y: f64,
+) -> Result<(), Error> {
+    debug!("设置窗口位置: x={}, y={}", x, y);
+
+    #[cfg(target_os = "macos")]
+    {
+        window.set_position(LogicalPosition::new(x, y))?;
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        if let Ok(scale_factor) = window.scale_factor() {
+            let physical_x = x * scale_factor;
+            let physical_y = y * scale_factor;
+
+            debug!(
+                "设置窗口物理位置: physical_x={}, physical_y={}, 缩放因子: {}",
+                physical_x, physical_y, scale_factor
+            );
+
+            window.set_position(PhysicalPosition::new(physical_x as i32, physical_y as i32))?;
+        } else {
+            // 降级方案，如果无法获取缩放因子
+            warn!("无法获取缩放因子，使用未缩放坐标");
+            window.set_position(PhysicalPosition::new(x as i32, y as i32))?;
+        }
+    }
+
+    Ok(())
+}
+
+/// 设置窗口大小，处理不同平台的差异
+pub fn set_window_size<R: Runtime>(
+    window: &WebviewWindow<R>,
+    width: f64,
+    height: f64,
+) -> Result<(), Error> {
+    debug!("设置窗口大小: width={}, height={}", width, height);
+
+    #[cfg(target_os = "macos")]
+    {
+        window.set_size(LogicalSize::new(width, height))?;
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        if let Ok(scale_factor) = window.scale_factor() {
+            let physical_width = width * scale_factor;
+            let physical_height = height * scale_factor;
+
+            debug!(
+                "设置窗口物理大小: physical_width={}, physical_height={}, 缩放因子: {}",
+                physical_width, physical_height, scale_factor
+            );
+
+            window.set_size(PhysicalSize::new(
+                physical_width as u32,
+                physical_height as u32,
+            ))?;
+        } else {
+            // 降级方案，如果无法获取缩放因子
+            warn!("无法获取缩放因子，使用未缩放尺寸");
+            window.set_size(PhysicalSize::new(width as u32, height as u32))?;
+        }
+    }
+
+    Ok(())
+}
+
+/// 同时设置窗口位置和大小
+pub fn set_window_position_and_size<R: Runtime>(
+    window: &WebviewWindow<R>,
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+) -> Result<(), Error> {
+    set_window_position(window, x, y)?;
+    set_window_size(window, width, height)?;
+    Ok(())
+}
+
+/// 应用位置信息到窗口
+pub fn apply_position_to_window<R: Runtime>(
+    window: &WebviewWindow<R>,
+    position: &super::models::WindowPosition,
+) -> Result<(), Error> {
+    debug!(
+        "应用位置到窗口: x={}, y={}, width={}, height={}",
+        position.x, position.y, position.width, position.height
+    );
+
+    set_window_position_and_size(
+        window,
+        position.x,
+        position.y,
+        position.width,
+        position.height,
+    )
 }
