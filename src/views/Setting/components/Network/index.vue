@@ -4,15 +4,51 @@
       {{ t('settings.menu.network') }}
     </h3>
     <div class="settings-section">
-      <div class="settings-options"></div>
+      <div class="settings-options">
+        <div class="setting-item">
+          <span class="setting-label">{{ t('settings.basic.theme') }}</span>
+          <a-select
+            v-model:value="proxySet"
+            :options="proxySetOptions"
+            class="setting-control"
+          />
+        </div>
+        <div class="setting-item">
+          <span class="setting-label">{{
+            t('settings.basic.proxyAddress')
+          }}</span>
+          <a-input v-model:value="address" class="setting-control" />
+        </div>
+        <div class="setting-item">
+          <span class="setting-label">{{ t('settings.basic.userName') }}</span>
+          <a-input v-model:value="userName" class="setting-control" />
+        </div>
+        <div class="setting-item">
+          <span class="setting-label">{{ t('settings.basic.pwd') }}</span>
+          <a-input type="password" v-model:value="pwd" class="setting-control" />
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import type { ProxyType } from '@/utils/storage';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
+const proxySet = ref<ProxyType>('unUsed');
+const proxySetOptions = [
+  { value: 'unUsed', label: t('settings.basic.unUsedProxy') },
+  { value: 'auto', label: t('settings.basic.autoProxy') },
+  { value: 'customize', label: t('settings.basic.customizeProxy') },
+];
+
+const address = ref('');
+const userName = ref('');
+const pwd = ref('');
+
+watch(proxySet, () => {});
 </script>
 
 <style scoped>

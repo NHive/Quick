@@ -28,7 +28,13 @@
       "pasteAndTop": "粘贴后移至最前",
       "winLocation": "窗口位置",
       "mouseLocation": "鼠标位置",
-      "lastLocation": "上次位置"
+      "lastLocation": "上次位置",
+      "unUsedProxy": "不使用代理",
+      "autoProxy": "自动检测",
+      "customizeProxy": "手动设置代理",
+      "proxyAddress": "代理地址",
+      "userName": "用户名",
+      "pwd": "密码"
     },
     "fileSync": {
       "title": "文件同步设置",

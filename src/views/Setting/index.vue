@@ -108,7 +108,7 @@ onMounted(async () => {
 .setting-sider {
   width: 200px;
   // background: #e9e8e7;
-  background:v-bind("token.colorBgContainerDisabled");
+  background:v-bind("token.colorBgLayout");
   flex-shrink: 0;
   padding: 0 0 12px;
   border-right: 1px solid rgba(0, 0, 0, 0.1);
@@ -148,7 +148,7 @@ onMounted(async () => {
 .setting-content {
   flex: 1;
   // background: #f9f9f9;
-  background:v-bind("token.colorBgContainerDisabled");
+  background:v-bind("token.colorBgMask");
   padding: 20px;
   overflow-y: auto;
   height: 100vh;

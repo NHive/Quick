@@ -28,7 +28,13 @@
       "pasteAndTop": "Paste and move to top",
       "winLocation": "Window location",
       "mouseLocation": "Mouse position",
-      "lastLocation": "Last location"
+      "lastLocation": "Last location",
+      "unUsedProxy": "No proxy",
+      "autoProxy": "Automatic detection",
+      "customizeProxy": "Manual settings",
+      "userName": "username",
+      "pwd": "password",
+      "proxyAddress": "Proxy address"
     },
     "fileSync": {
       "title": "File Sync Settings",

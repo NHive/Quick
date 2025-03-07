@@ -199,7 +199,7 @@ defineOptions({ name: 'CustomSetting' });
 
 .settings-section {
   /* background: var(--bg-color); */
-  background: v-bind("token.colorBgMask");
+  background: v-bind("token.colorBgContainerDisabled");
   backdrop-filter: blur(20px);
   border-radius: 20px;
   padding: 24px;
@@ -304,7 +304,7 @@ defineOptions({ name: 'CustomSetting' });
 
 /* 替换原来的深色模式适配 */
 :root[data-theme='dark'] .settings-section {
-  background: var(--bg-color);
+  /* background: var(--bg-color); */
 }
 
 :root[data-theme='dark'] .settings-section-title,
