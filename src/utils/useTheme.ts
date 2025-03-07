@@ -12,9 +12,9 @@ export function useTheme(themeMode: Ref<'auto' | 'light' | 'dark'>) {
   }
 
   // 监听主题变化
-  watch(themeMode, (newValue) => {
-    setTheme(newValue)
-  })
+  // watch(themeMode, (newValue) => {
+  //   setTheme(newValue)
+  // })
 
   const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
   const handleThemeChange = (event: MediaQueryListEvent | MediaQueryList) => {

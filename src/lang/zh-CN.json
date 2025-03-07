@@ -16,7 +16,7 @@
       "themeAuto": "自动",
       "themeLight": "亮色",
       "themeDark": "暗色",
-      "language": "语言",
+      "language": "语言设置",
       "clipboardMonitor": "开启剪切板监听",
       "autoInsert": "开启自动插入",
       "defaultClipboard": "其他设备的剪切板设为默认值",
@@ -25,7 +25,10 @@
       "imgFileConvToImg": "解析文件中的图片",
       "lossyCompressedPicture": "图片压缩保存",
       "silentStart": "静默启动",
-      "pasteAndTop": "粘贴后移至最前"
+      "pasteAndTop": "粘贴后移至最前",
+      "winLocation": "窗口位置",
+      "mouseLocation": "鼠标位置",
+      "lastLocation": "上次位置"
     },
     "fileSync": {
       "title": "文件同步设置",

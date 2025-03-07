@@ -16,7 +16,7 @@
       "themeAuto": "Auto",
       "themeLight": "Light",
       "themeDark": "Dark",
-      "language": "Language",
+      "language": "Language settings",
       "clipboardMonitor": "Enable Clipboard Monitor",
       "autoInsert": "Enable Auto Insert",
       "defaultClipboard": "Set Other Device's Clipboard as Default",
@@ -25,7 +25,10 @@
       "imgFileConvToImg": "Parse images in files",
       "lossyCompressedPicture": "Save compressed images",
       "silentStart": "Silent Start",
-      "pasteAndTop": "Paste and move to top"
+      "pasteAndTop": "Paste and move to top",
+      "winLocation": "Window location",
+      "mouseLocation": "Mouse position",
+      "lastLocation": "Last location"
     },
     "fileSync": {
       "title": "File Sync Settings",
@@ -282,6 +285,7 @@
     "slogan2": "Smart Organization & Tags",
     "slogan3": "20+ Premium Features",
     "slogan4": "Priority Support & Service",
-    "hotkey": "shortcut key"
+    "hotkey": "shortcut key",
+    "url": "Link"
   }
 }

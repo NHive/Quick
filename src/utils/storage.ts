@@ -33,37 +33,83 @@ export class Storage {
       throw error
     }
   }
+
+  // 初始化
+  static async initStorage() {
+    try {
+      await invoke("init_setup", { defaults: defaultConfig })
+    } catch (error) {
+      console.log("initStorage Fail", error)
+    }
+  }
 }
 
 export const SETTING_STORAGE_KEYS = {
-  // 监听剪切板
-  ENABLE_MONITOR: "enable_monitor",
-  // 自动粘贴
-  AUTO_INSERT: "auto_insert",
-  // 默认设置
-  DEFAULT_SET: "default_set",
-  // 文件同步
-  FILE_SYNC: "file_sync",
-  // 最大文件大小
-  MAX_FILE_SIZE: "max_file_size",
-  // 关键词过滤
-  KEYWORD_FILTER: "keyword_filter",
   // 主题模式
   THEME_MODE: "themeMode",
   // 语言
   LOCALE: "locale",
-  // 历史记录保存时间
-  HISTORY_RETENTION_DAYS: "history_save_time_days",
   // 自动启动
   AUTO_START: "auto_start",
   // 是否首次启动
   IS_FIRST_START: "is_first_start",
-  // 是否将图片文件解析为图片
-  IMG_FILE_CONV_TO_IMG: "img_file_conv_to_img",
-  // 是否将图片有损压缩保存(统一保存为jpg)
-  LOSSY_COMPRESSED_PICTURE: "lossy_compressed_picture",
   // 静默启动(启动后不显示主窗口,用快捷键唤起后出现窗口)
   SILENT_START: "silent_start",
-  // 粘贴后移动记录至最前
-  PASTE_AND_TOP: "paste_and_top"
+  // 主窗口位置（跟随鼠标位置or跟随上次位置）
+  WIN_LOCATION: "win_location"
 } as const
+
+export enum THEMEMODE_ENUM {
+  AUTO = 'auto',
+  LIGHT = 'light',
+  DARK = 'dark'
+}
+
+// 代理配置类型定义
+export interface ProxyConfigType {
+  proxyType: 'unUsed' | 'auto' | 'customize', // 不使用代理｜自动检查｜自定义设置
+  address?: string,
+  name?: string,
+  pwd?: string
+}
+
+// 快捷键类型定义
+export interface HotkeysType {
+  id: number,
+  url: string,
+  hotkey: string
+}
+
+// 默认配置类型定义
+export interface defaultConfigType {
+  theme: string, // 主题色
+  themeMode: 'auto' | 'light' | 'dark', // 主题模式：亮|暗
+  locale: 'zh-CN' | 'en-US', // 国际化
+  bootUp: boolean, // 是否开机启动
+  silentStart: boolean, // 是否静默启动
+  winLocation: 'mouseLocation' | 'lastLocation', // 主窗口位置，鼠标位置｜上次位置
+  // 代理设置
+  proxyConfig: ProxyConfigType,
+  // 快捷键设置
+  hotkeys: Array<HotkeysType>
+
+}
+
+// 默认配置值
+export const defaultConfig: defaultConfigType = {
+  theme: '', // 主题色
+  themeMode: 'light', // 主题模式：亮|暗
+  locale: 'zh-CN', // 国际化
+  bootUp: false, // 是否开机启动
+  silentStart: false, // 是否静默启动
+  winLocation: 'mouseLocation', // 主窗口位置，鼠标位置｜上次位置
+  // 代理设置
+  proxyConfig: {
+    proxyType: 'unUsed',
+    address: '',
+    name: '',
+    pwd: ''
+  },
+  // 快捷键设置
+  hotkeys: []
+}

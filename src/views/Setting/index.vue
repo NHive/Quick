@@ -26,58 +26,60 @@
 
 <script setup lang="ts">
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { onMounted, ref } from "vue"
-import { useRoute, RouterView } from "vue-router"
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
-import { Storage, SETTING_STORAGE_KEYS } from "@/utils/storage"
-import { useTheme } from "@/utils/useTheme"
-import { useLanguage } from "@/utils/i18n"
-import { icons } from "@/utils/svg"
-import { Sider } from "./components"
+import { onMounted, ref } from 'vue';
+import { useRoute, RouterView } from 'vue-router';
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+import { Storage, SETTING_STORAGE_KEYS } from '@/utils/storage';
+import { useTheme } from '@/utils/useTheme';
+import { useLanguage } from '@/utils/i18n';
+import { icons } from '@/utils/svg';
+import { Sider } from './components';
+import { theme as antdTheme } from 'ant-design-vue';
 
-const appWindow = getCurrentWebviewWindow()
+const appWindow = getCurrentWebviewWindow();
+const { token } = antdTheme.useToken();
 
-const route = useRoute()
-const isVertical = ref<boolean>(false)
-const id = ref<string | null>(null)
-const themeMode = ref<"auto" | "light" | "dark">("auto")
-const isWindows = ref(false)
+const route = useRoute();
+const isVertical = ref<boolean>(false);
+const id = ref<string | null>(null);
+const themeMode = ref<'auto' | 'light' | 'dark'>('auto');
+const isWindows = ref(false);
 
 const minimizeWindow = () => {
-  appWindow.minimize()
-}
+  appWindow.minimize();
+};
 
 const closeWindow = () => {
-  appWindow.close()
-}
+  appWindow.close();
+};
 
 const initializeApp = async () => {
-  console.log('cus00')
+  console.log('cus00');
   try {
     // 初始化语言
-    const { updateLanguage } = useLanguage()
-    const savedLocale = await Storage.get(SETTING_STORAGE_KEYS.LOCALE, "zh-CN")
-    await updateLanguage(savedLocale)
+    const { updateLanguage } = useLanguage();
+    const savedLocale = await Storage.get(SETTING_STORAGE_KEYS.LOCALE, 'zh-CN');
+    await updateLanguage(savedLocale);
 
     // 初始化主题
-    const savedTheme = (await Storage.get(SETTING_STORAGE_KEYS.THEME_MODE, "auto")) as
-      | "auto"
-      | "light"
-      | "dark"
-    themeMode.value = savedTheme
-    const { setTheme } = useTheme(themeMode)
-    setTheme(savedTheme)
-    isWindows.value = await Storage.get("isWindows", false)
+    const savedTheme = (await Storage.get(
+      SETTING_STORAGE_KEYS.THEME_MODE,
+      'auto'
+    )) as 'auto' | 'light' | 'dark';
+    themeMode.value = savedTheme;
+    const { setTheme } = useTheme(themeMode);
+    setTheme(savedTheme);
+    isWindows.value = await Storage.get('isWindows', false);
   } catch (error) {
-    console.error("Failed to initialize app settings:", error)
+    console.error('Failed to initialize app settings:', error);
   }
-}
+};
 
 onMounted(async () => {
-  await initializeApp()
-  isVertical.value = Boolean(route.query.verticalModule)
-  id.value = route.query.id ? String(route.query.id) : null
-})
+  await initializeApp();
+  isVertical.value = Boolean(route.query.verticalModule);
+  id.value = route.query.id ? String(route.query.id) : null;
+});
 </script>
 
 <style lang="scss" scoped>
@@ -86,13 +88,15 @@ onMounted(async () => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: rgba(245, 245, 247, 0.95);
+  // background: rgba(245, 245, 247, 0.95);
   border-radius: 8px;
   overflow: hidden;
+  background:v-bind("token.colorBgContainer");
 
-  :root[data-theme="dark"] & {
-    background: rgba(28, 28, 30, 0.95);
-  }
+
+  // :root[data-theme='dark'] & {
+  //   background: rgba(28, 28, 30, 0.95);
+  // }
 }
 
 .setting-box {
@@ -103,15 +107,16 @@ onMounted(async () => {
 
 .setting-sider {
   width: 200px;
-  background: #e9e8e7;
+  // background: #e9e8e7;
+  background:v-bind("token.colorBgContainerDisabled");
   flex-shrink: 0;
   padding: 0 0 12px;
   border-right: 1px solid rgba(0, 0, 0, 0.1);
 
-  :root[data-theme="dark"] & {
-    background: #2c2c2e;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
-  }
+  // :root[data-theme='dark'] & {
+  //   background: #2c2c2e;
+  //   border-right: 1px solid rgba(255, 255, 255, 0.1);
+  // }
 
   :deep(.menu-item) {
     padding: 8px 16px;
@@ -121,28 +126,29 @@ onMounted(async () => {
     cursor: pointer;
     transition: all 0.2s;
 
-    :root[data-theme="dark"] & {
-      color: #ffffff;
-    }
+    // :root[data-theme='dark'] & {
+    //   color: #ffffff;
+    // }
 
-    &:hover {
-      background: rgba(0, 0, 0, 0.06);
+    // &:hover {
+    //   background: rgba(0, 0, 0, 0.06);
 
-      :root[data-theme="dark"] & {
-        background: rgba(255, 255, 255, 0.1);
-      }
-    }
+    //   :root[data-theme='dark'] & {
+    //     background: rgba(255, 255, 255, 0.1);
+    //   }
+    // }
 
-    &.active {
-      background: #4784ec;
-      color: #ffffff;
-    }
+    // &.active {
+    //   background: #4784ec;
+    //   color: #ffffff;
+    // }
   }
 }
 
 .setting-content {
   flex: 1;
-  background: #f9f9f9;
+  // background: #f9f9f9;
+  background:v-bind("token.colorBgContainerDisabled");
   padding: 20px;
   overflow-y: auto;
   height: 100vh;
@@ -156,9 +162,9 @@ onMounted(async () => {
   scrollbar-width: none;
   /* Firefox */
 
-  :root[data-theme="dark"] & {
-    background: #2c2c2e;
-  }
+  // :root[data-theme='dark'] & {
+  //   background: #2c2c2e;
+  // }
 }
 
 .drag-header {
@@ -195,22 +201,22 @@ onMounted(async () => {
       }
     }
 
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.06);
+    // &:hover {
+    //   background-color: rgba(0, 0, 0, 0.06);
 
-      :root[data-theme="dark"] & {
-        background-color: rgba(255, 255, 255, 0.08);
-      }
-    }
+    //   :root[data-theme='dark'] & {
+    //     background-color: rgba(255, 255, 255, 0.08);
+    //   }
+    // }
 
     &.minimize {
-      &:hover {
-        background-color: rgba(0, 0, 0, 0.06);
+      // &:hover {
+      //   background-color: rgba(0, 0, 0, 0.06);
 
-        :root[data-theme="dark"] & {
-          background-color: rgba(255, 255, 255, 0.08);
-        }
-      }
+      //   :root[data-theme='dark'] & {
+      //     background-color: rgba(255, 255, 255, 0.08);
+      //   }
+      // }
     }
 
     &.close {

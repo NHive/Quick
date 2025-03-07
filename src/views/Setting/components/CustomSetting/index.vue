@@ -2,13 +2,17 @@
   <div class="settings-container" v-if="isLoaded">
     <h3 class="settings-section-title">{{ t('settings.basic.title') }}</h3>
     <div class="settings-section">
-      <!-- <div class="settings-options">
+      <div class="settings-options">
         <div class="setting-item">
-          <span class="setting-label">{{ t("settings.basic.theme") }}</span>
-          <a-select v-model:value="themeMode" :options="themeOptions" class="setting-control" />
+          <span class="setting-label">{{ t('settings.basic.theme') }}</span>
+          <a-select
+            v-model:value="themeMode"
+            :options="themeOptions"
+            class="setting-control"
+          />
         </div>
         <div class="setting-item">
-          <span class="setting-label">{{ t("settings.basic.language") }}</span>
+          <span class="setting-label">{{ t('settings.basic.language') }}</span>
           <a-select
             v-model:value="currentLocale"
             :options="languageOptions"
@@ -16,69 +20,27 @@
           />
         </div>
         <div class="setting-item">
-          <span class="setting-label">{{ t("settings.basic.clipboardMonitor") }}</span>
-          <a-switch v-model:checked="enableMonitor" />
-        </div>
-        <div class="setting-item">
-          <span class="setting-label">{{ t("settings.basic.autoInsert") }}</span>
-          <a-switch v-model:checked="autoInsert" />
-        </div>
-        <div class="setting-item">
-          <span class="setting-label">{{ t("settings.basic.defaultClipboard") }}</span>
-          <a-switch v-model:checked="defaultSet" />
-        </div>
-        <div class="setting-item">
-          <span class="setting-label">{{ t("settings.basic.autoStart") }}</span>
+          <span class="setting-label">{{ t('settings.basic.autoStart') }}</span>
           <a-switch v-model:checked="autostartEnabled" />
         </div>
-        <div class='setting-item'>
-          <span class='setting-label'>{{ t('settings.basic.imgFileConvToImg') }}</span>
-          <a-switch v-model:checked='imgFileConvToImg' />
-        </div>
-        <div class='setting-item'>
-          <span class='setting-label'>{{ t('settings.basic.lossyCompressedPicture') }}</span>
-          <a-switch v-model:checked='lossyCompressedPicture' />
-        </div>
-        <div class='setting-item'>
-          <span class='setting-label'>{{ t('settings.basic.silentStart') }}</span>
-          <a-switch v-model:checked='silentStart' />
-        </div>
-        <div class='setting-item'>
-          <span class='setting-label'>{{ t('settings.basic.pasteAndTop') }}</span>
-          <a-switch v-model:checked='pasteAndTop' />
-        </div>
-      </div> -->
-    </div>
-
-    <!-- <div class="settings-section">
-      <h3 class="settings-section-title">{{ t("settings.fileSync.title") }}</h3>
-      <div class="settings-options">
         <div class="setting-item">
-          <span class="setting-label">{{ t("settings.fileSync.enable") }}</span>
-          <a-switch v-model:checked="fileSync" />
+          <span class="setting-label">{{
+            t('settings.basic.silentStart')
+          }}</span>
+          <a-switch v-model:checked="silentStart" />
         </div>
         <div class="setting-item">
-          <span class="setting-label">{{ t("settings.fileSync.sizeLimit") }}</span>
+          <span class="setting-label">{{
+            t('settings.basic.winLocation')
+          }}</span>
           <a-select
-            v-model:value="capacityValue"
-            :options="capacityOptions"
+            v-model:value="winLocation"
+            :options="winLocationOptions"
             class="setting-control"
-          />
-        </div>
-        <div class="setting-item">
-          <span class="setting-label">{{ t("settings.fileSync.keywordFilter") }}</span>
-          <a-select
-            v-model:value="selectValue"
-            mode="tags"
-            class="setting-control"
-            :token-separators="[',']"
-            :placeholder="t('settings.fileSync.keywordPlaceholder')"
-            :options="keywordOptions"
-            @change="updateSetting('keywordFilter', selectValue)"
           />
         </div>
       </div>
-    </div> -->
+    </div>
   </div>
   <div v-else class="flex-row-center mt-50">
     <a-spin :indicator="indicator" />
@@ -87,7 +49,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, computed, watch, h } from 'vue';
-import { type SelectProps } from 'ant-design-vue';
+import { type SelectProps, theme as antdTheme } from 'ant-design-vue';
 import { enable, isEnabled, disable } from '@tauri-apps/plugin-autostart';
 import { LoadingOutlined } from '@ant-design/icons-vue';
 import { useI18n } from 'vue-i18n';
@@ -104,25 +66,28 @@ const indicator = h(LoadingOutlined, {
 const { t } = useI18n();
 const { currentLocale, updateLanguage, getLanguageOptions } = useLanguage();
 
-const themeMode = ref('auto' as 'auto' | 'light' | 'dark');
-const enableMonitor = ref(false);
-const autoInsert = ref(false);
-const defaultSet = ref(false);
+const themeMode = ref<'auto' | 'light' | 'dark'>('auto');
 const autostartEnabled = ref(false);
-const fileSync = ref(false);
-const capacityValue = ref<number>(10485760);
-const selectValue = ref<string[]>([]);
-const keywordOptions = ref<SelectProps['options']>([]);
-const imgFileConvToImg = ref(false);
-const lossyCompressedPicture = ref(false);
 const silentStart = ref(false);
-const pasteAndTop = ref(false);
+const winLocation = ref<'mouse' | 'last'>('mouse');
 const isLoaded = ref(false);
 
 const { setTheme } = useTheme(themeMode);
+const { token } = antdTheme.useToken();
 
 // 语言选项
 const languageOptions = getLanguageOptions();
+// 主题模式选项
+const themeOptions = computed(() => [
+  { label: t('settings.basic.themeAuto'), value: 'auto' },
+  { label: t('settings.basic.themeLight'), value: 'light' },
+  { label: t('settings.basic.themeDark'), value: 'dark' },
+]);
+// 窗口位置选项
+const winLocationOptions = computed(() => [
+  { label: t('settings.basic.mouseLocation'), value: 'mouse' },
+  { label: t('settings.basic.lastLocation'), value: 'last' },
+]);
 
 // 监听语言变化
 watch(currentLocale, async (newLocale) => {
@@ -131,32 +96,49 @@ watch(currentLocale, async (newLocale) => {
   await emit('setting-changed', { type: 'language', value: newLocale });
 });
 
-const themeOptions = computed(() => [
-  { label: t('settings.basic.themeAuto'), value: 'auto' },
-  { label: t('settings.basic.themeLight'), value: 'light' },
-  { label: t('settings.basic.themeDark'), value: 'dark' },
-]);
+// 添加主题监听
+watch(themeMode, async (newTheme) => {
+  console.log('listZTS', newTheme);
+  await Storage.set(SETTING_STORAGE_KEYS.THEME_MODE, newTheme);
 
-const capacityOptions: SelectProps['options'] = [
-  { label: '10MB', value: 10 * 1024 * 1024 },
-  { label: '20MB', value: 20 * 1024 * 1024 },
-  { label: '50MB', value: 50 * 1024 * 1024 },
+  // setTheme(newTheme);
+  await emit('setting-changed', { type: 'theme', value: newTheme });
+});
+
+// 添加对自动启动开关的监听
+watch(autostartEnabled, async (newValue) => {
+  try {
+    if (newValue) {
+      await enable();
+    } else {
+      await disable();
+    }
+    // 可选：保存设置到本地存储
+    await Storage.set(SETTING_STORAGE_KEYS.AUTO_START, newValue);
+  } catch (error) {
+    console.error('Failed to update autostart:', error);
+    // 如果设置失败，回滚开关状态
+    autostartEnabled.value = !newValue;
+  }
+});
+
+// 监听其他设置选项
+const settingsToWatch = [
+  // { ref: currentLocale, key: 'LOCALE' },
+  // { ref: themeMode, key: 'THEME_MODE' },
+  // { ref: autoInsert, key: 'AUTO_INSERT' },
+  { ref: silentStart, key: 'SILENT_START' },
+  { ref: winLocation, key: 'WIN_LOCATION' },
 ];
 
-const updateSetting = async (key: string, value: any) => {
-  try {
-    const storageKey =
-      SETTING_STORAGE_KEYS[
-        key.toUpperCase() as keyof typeof SETTING_STORAGE_KEYS
-      ];
-    if (!storageKey) {
-      throw new Error(`Invalid setting key: ${key}`);
-    }
-    await Storage.set(storageKey, value);
-  } catch (error) {
-    console.error(`Failed to update ${key}:`, error);
-  }
-};
+settingsToWatch.forEach(({ ref: setting, key }) => {
+  watch(setting, async (newValue) => {
+    await Storage.set(
+      SETTING_STORAGE_KEYS[key as keyof typeof SETTING_STORAGE_KEYS],
+      newValue
+    );
+  });
+});
 
 const initializeSettings = async () => {
   try {
@@ -173,41 +155,12 @@ const initializeSettings = async () => {
     themeMode.value = savedTheme;
     setTheme(savedTheme); // 确保立即应用主题
     // 3. 初始化其他设置
-    enableMonitor.value = await Storage.get(
-      SETTING_STORAGE_KEYS.ENABLE_MONITOR,
-      true
-    );
-    autoInsert.value = await Storage.get(
-      SETTING_STORAGE_KEYS.AUTO_INSERT,
-      true
-    );
-    defaultSet.value = await Storage.get(
-      SETTING_STORAGE_KEYS.DEFAULT_SET,
-      true
-    );
-    fileSync.value = await Storage.get(SETTING_STORAGE_KEYS.FILE_SYNC, true);
-    capacityValue.value = await Storage.get(
-      SETTING_STORAGE_KEYS.MAX_FILE_SIZE,
-      10485760
-    );
-    imgFileConvToImg.value = await Storage.get(
-      SETTING_STORAGE_KEYS.IMG_FILE_CONV_TO_IMG,
-      true
-    );
-    lossyCompressedPicture.value = await Storage.get(
-      SETTING_STORAGE_KEYS.LOSSY_COMPRESSED_PICTURE,
-      true
-    );
+    // init静默启动
     silentStart.value = await Storage.get(
       SETTING_STORAGE_KEYS.SILENT_START,
       false
     );
-    pasteAndTop.value = await Storage.get(
-      SETTING_STORAGE_KEYS.PASTE_AND_TOP,
-      true
-    );
-
-    // 修改自启动初始化逻辑
+    // 修改开机自启动初始化逻辑
     const savedAutoStart = await Storage.get(
       SETTING_STORAGE_KEYS.AUTO_START,
       false
@@ -229,53 +182,6 @@ const initializeSettings = async () => {
   }
 };
 
-const settingsToWatch = [
-  { ref: currentLocale, key: 'LOCALE' },
-  { ref: themeMode, key: 'THEME_MODE' },
-  { ref: enableMonitor, key: 'ENABLE_MONITOR' },
-  { ref: autoInsert, key: 'AUTO_INSERT' },
-  { ref: defaultSet, key: 'DEFAULT_SET' },
-  { ref: fileSync, key: 'FILE_SYNC' },
-  { ref: capacityValue, key: 'MAX_FILE_SIZE' },
-  { ref: imgFileConvToImg, key: 'IMG_FILE_CONV_TO_IMG' },
-  { ref: lossyCompressedPicture, key: 'LOSSY_COMPRESSED_PICTURE' },
-  { ref: silentStart, key: 'SILENT_START' },
-  { ref: pasteAndTop, key: 'PASTE_AND_TOP' },
-];
-
-settingsToWatch.forEach(({ ref: setting, key }) => {
-  watch(setting, async (newValue) => {
-    await Storage.set(
-      SETTING_STORAGE_KEYS[key as keyof typeof SETTING_STORAGE_KEYS],
-      newValue
-    );
-  });
-});
-
-// 添加主题监听
-watch(themeMode, async (newTheme) => {
-  await Storage.set(SETTING_STORAGE_KEYS.THEME_MODE, newTheme);
-  setTheme(newTheme);
-  await emit('setting-changed', { type: 'theme', value: newTheme });
-});
-
-// 添加对自动启动开关的监听
-watch(autostartEnabled, async (newValue) => {
-  try {
-    if (newValue) {
-      await enable();
-    } else {
-      await disable();
-    }
-    // 可选：保存设置到本地存储
-    await Storage.set(SETTING_STORAGE_KEYS.AUTO_START, newValue);
-  } catch (error) {
-    console.error('Failed to update autostart:', error);
-    // 如果设置失败，回滚开关状态
-    autostartEnabled.value = !newValue;
-  }
-});
-
 onMounted(async () => {
   await initializeSettings();
 });
@@ -292,7 +198,8 @@ defineOptions({ name: 'CustomSetting' });
 }
 
 .settings-section {
-  background: var(--bg-color);
+  /* background: var(--bg-color); */
+  background: v-bind("token.colorBgMask");
   backdrop-filter: blur(20px);
   border-radius: 20px;
   padding: 24px;

@@ -19,19 +19,22 @@
   </div>
 </template>
 
-
 <script setup lang="ts">
+import { theme as antdTheme } from 'ant-design-vue';
+
 import { icons } from '@/utils/svg';
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from '@tauri-apps/api/core';
 import { onMounted, onUnmounted } from 'vue';
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow"
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
+
+const data = antdTheme.useToken();
+console.log('#theme', data, data.token.value);
 
 // 定义窗口配置
 const windowConfigs = [
-  { title: "deepseek", url: "https://chat.deepseek.com" },
-  { title: "doubao", url: "https://www.doubao.com/chat/" }
+  { title: 'deepseek', url: 'https://chat.deepseek.com' },
+  { title: 'doubao', url: 'https://www.doubao.com/chat/' },
 ];
-
 
 // 调用 cmd_configure_windows 命令
 const configureWindows = async () => {
@@ -76,8 +79,8 @@ const openSettingWindow = async () => {
 const openWindowByLink = async () => {
   try {
     await invoke('cmd_create_window', {
-      url: "https://chat.deepseek.com",
-      title: "deepseek"
+      url: 'https://chat.deepseek.com',
+      title: 'deepseek',
     });
   } catch (error) {
     console.error('Failed to open window with URL:', error);
@@ -109,12 +112,10 @@ onMounted(async () => {
 
     // 配置窗口列表并获取窗口信息
     await configureWindows();
-
   } catch (error) {
     console.error('Error setting up window event listener:', error);
   }
 });
-
 </script>
 
 <style lang="scss" scoped>
@@ -122,8 +123,9 @@ onMounted(async () => {
   width: 100%;
   height: 100vh;
   margin: 0;
-  background-color: #f9fbff;
+  background-color: v-bind('data.token.value.colorBgLayout');
   overflow: hidden;
+  transition: all 0.3s;
 }
 
 .controlBox {
@@ -145,7 +147,12 @@ onMounted(async () => {
     cursor: pointer;
     margin-right: 20px; /* 由下边距改为右边距 */
     margin-bottom: 0; /* 移除下边距 */
-    color: #888;
+  }
+  :deep(svg) {
+    path {
+      fill: v-bind('data.token.value.colorTextBase');
+      transition: fill 0.2s;
+    }
   }
 
   .moveIcon {
