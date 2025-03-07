@@ -3,4 +3,6 @@
 
 pub mod prelude;
 
+pub mod proxies;
 pub mod setup;
+pub mod windows;

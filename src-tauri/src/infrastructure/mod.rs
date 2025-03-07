@@ -1,4 +1,5 @@
 // file_path: src/infrastructure/mod.rs
+pub mod data_access;
 pub mod datetime;
 pub mod db;
 pub mod entity;

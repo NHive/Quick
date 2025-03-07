@@ -190,7 +190,6 @@ pub fn position_control_window_below_quick<R: Runtime>(
         None => return Ok(()), // 控制窗口可能尚不存在
     };
 
-
     let position = get_quick_common_position(app);
 
     let quick_position = if let Some(position) = position {

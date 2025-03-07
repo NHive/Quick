@@ -26,6 +26,19 @@ pub enum AppError {
     UnknownError(String),
 }
 
+// 支持从String和&str转换为AppError
+impl From<String> for AppError {
+    fn from(s: String) -> Self {
+        AppError::UnknownError(s)
+    }
+}
+
+impl From<&str> for AppError {
+    fn from(s: &str) -> Self {
+        AppError::UnknownError(s.to_string())
+    }
+}
+
 #[allow(dead_code)]
 impl AppError {
     pub(crate) fn error_code(&self) -> i32 {
@@ -71,4 +84,18 @@ pub trait ResultExt<T, E> {
     where
         F: FnOnce() -> C,
         C: AsRef<str>;
+}
+
+impl<T, E: std::error::Error + 'static> ResultExt<T, E> for Result<T, E> {
+    fn with_context<C, F>(self, context: F) -> Result<T, AppError>
+    where
+        F: FnOnce() -> C,
+        C: AsRef<str>,
+    {
+        self.map_err(|err| {
+            let context_str = context();
+            let error_message = format!("{}: {}", context_str.as_ref(), err);
+            AppError::new_unknown(error_message)
+        })
+    }
 }
