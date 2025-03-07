@@ -3,7 +3,6 @@
 
 use log::{debug, info};
 use std::sync::{Arc, RwLock};
-use std::time::Duration;
 use tauri::utils::config::WebviewUrl;
 use tauri::{AppHandle, Error, Manager, Runtime, WebviewWindowBuilder};
 
@@ -12,8 +11,8 @@ use tauri::TitleBarStyle;
 
 use super::models::{WindowConfig, WindowInfo, WindowManagerState, WindowStatus};
 use super::utils::{
-    apply_position_to_window, generate_window_label, get_window_position_and_size,
-    set_window_position,
+    apply_position_to_window, generate_window_label, get_quick_common_position,
+    get_window_position_and_size, set_window_position,
 };
 use crate::communication::events::app_events::WindowFocusState;
 
@@ -185,22 +184,20 @@ pub fn position_control_window_below_quick<R: Runtime>(
     app: &AppHandle<R>,
     quick_window_label: &str,
 ) -> Result<(), Error> {
-    // 获取快速窗口
-    let _quick_window = app.get_webview_window(quick_window_label).ok_or_else(|| {
-        Error::from(std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            format!("窗口 {} 未找到", quick_window_label),
-        ))
-    })?;
-
     // 获取控制窗口
     let control_window = match app.get_webview_window("control") {
         Some(window) => window,
         None => return Ok(()), // 控制窗口可能尚不存在
     };
 
-    // 获取快速窗口位置
-    let quick_position = get_window_position_and_size(app, quick_window_label)?;
+
+    let position = get_quick_common_position(app);
+
+    let quick_position = if let Some(position) = position {
+        position
+    } else {
+        get_window_position_and_size(app, quick_window_label)?
+    };
 
     // 获取控制窗口大小
     let control_position = match get_window_position_and_size(app, "control") {
@@ -234,7 +231,6 @@ pub fn position_control_window_below_quick<R: Runtime>(
     }
 
     // 显示控制窗口
-    std::thread::sleep(Duration::from_millis(100));
     control_window.show()?;
 
     Ok(())
