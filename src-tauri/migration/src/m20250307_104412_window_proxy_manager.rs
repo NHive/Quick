@@ -14,6 +14,7 @@ impl MigrationTrait for Migration {
                     .table(Proxies::Table)
                     .if_not_exists()
                     .col(pk_auto(Proxies::Id))
+                    .col(string(Proxies::Title).not_null().unique_key())
                     .col(string(Proxies::Type).not_null())
                     .col(string(Proxies::Host).not_null())
                     .col(integer(Proxies::Port).not_null())
@@ -33,18 +34,18 @@ impl MigrationTrait for Migration {
                     .table(Windows::Table)
                     .if_not_exists()
                     .col(pk_auto(Windows::Id))
-                    .col(string(Windows::Title).not_null())
+                    .col(string(Windows::Title).not_null().unique_key())
                     .col(string(Windows::Url).not_null())
                     .col(string(Windows::Icon))
                     .col(integer(Windows::SortOrder).not_null())
-                    .col(integer(Windows::ProxyId).null())  // 可空的ProxyId外键
+                    .col(integer(Windows::ProxyId).null()) // 可空的ProxyId外键
                     .col(string(Windows::CreatedAt).default(Expr::current_timestamp()))
                     .col(string(Windows::UpdatedAt).default(Expr::current_timestamp()))
                     .foreign_key(
                         ForeignKey::create()
                             .from(Windows::Table, Windows::ProxyId)
                             .to(Proxies::Table, Proxies::Id)
-                            .on_delete(ForeignKeyAction::SetNull),  // 代理删除时设置为null
+                            .on_delete(ForeignKeyAction::SetNull), // 代理删除时设置为null
                     )
                     .to_owned(),
             )
@@ -76,7 +77,7 @@ enum Windows {
     Url,
     Icon,
     SortOrder,
-    ProxyId,    // 新增字段，引用Proxies表
+    ProxyId, // 新增字段，引用Proxies表
     CreatedAt,
     UpdatedAt,
 }
@@ -86,6 +87,7 @@ enum Windows {
 enum Proxies {
     Table,
     Id,
+    Title,
     Type,
     Host,
     Port,
