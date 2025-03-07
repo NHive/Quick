@@ -147,7 +147,7 @@ impl WindowManager {
     }
 
     /// 添加新窗口
-    pub fn add_window(&mut self, label: String, title: String, url: String) {
+    pub fn add_window(&mut self, label: &str, title: &str, url: &str) {
         // 将当前激活窗口更新为后台状态
         if let Some(active_label) = &self.active_window {
             // 保存为前一个激活窗口
@@ -160,16 +160,16 @@ impl WindowManager {
 
         // 创建新窗口信息
         let window_info = WindowInfo {
-            label: label.clone(),
-            title,
-            url,
+            label: label.to_string(),
+            title: title.to_string(),
+            url: url.to_string(),
             status: WindowStatus::Foreground,
             loaded: false,
             position: None,
         };
 
-        self.windows.insert(label.clone(), window_info);
-        self.active_window = Some(label);
+        self.windows.insert(label.to_string().clone(), window_info);
+        self.active_window = Some(label.to_string());
     }
 
     /// 切换到指定窗口

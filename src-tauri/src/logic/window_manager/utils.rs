@@ -64,7 +64,7 @@ pub fn get_window_position_and_size<R: Runtime>(
             .to_logical::<f64>(window.scale_factor()?);
 
         let size = window
-            .inner_size()?
+            .outer_size()?
             .to_logical::<f64>(window.scale_factor()?);
 
         Ok(WindowPosition {
@@ -79,7 +79,8 @@ pub fn get_window_position_and_size<R: Runtime>(
     {
         // Windows 和其他系统使用物理坐标
         let position = window.outer_position()?.to_logical(window.scale_factor()?);
-        let size = window.inner_size()?.to_logical(window.scale_factor()?);
+        // 同样改为outer_size以保持一致性
+        let size = window.outer_size()?.to_logical(window.scale_factor()?);
 
         Ok(WindowPosition {
             x: position.x,
