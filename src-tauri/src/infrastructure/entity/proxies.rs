@@ -13,8 +13,8 @@ pub struct Model {
     pub r#type: String,
     pub host: String,
     pub port: i32,
-    pub username: String,
-    pub password: String,
+    pub username: Option<String>,
+    pub password: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }

@@ -11,9 +11,10 @@ pub struct Model {
     #[sea_orm(unique)]
     pub title: String,
     pub url: String,
-    pub icon: String,
+    pub icon: Option<String>,
     pub sort_order: i32,
-    pub proxy_id: i32,
+    pub proxy_id: Option<i32>,
+    pub shortcut: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }

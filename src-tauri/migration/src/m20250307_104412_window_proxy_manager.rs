@@ -18,8 +18,8 @@ impl MigrationTrait for Migration {
                     .col(string(Proxies::Type).not_null())
                     .col(string(Proxies::Host).not_null())
                     .col(integer(Proxies::Port).not_null())
-                    .col(string(Proxies::Username))
-                    .col(string(Proxies::Password))
+                    .col(string_null(Proxies::Username).null())
+                    .col(string_null(Proxies::Password).null())
                     .col(string(Proxies::CreatedAt).default(Expr::current_timestamp()))
                     .col(string(Proxies::UpdatedAt).default(Expr::current_timestamp()))
                     .check(Expr::col(Proxies::Type).is_in(vec!["http", "socks"]))
@@ -36,9 +36,10 @@ impl MigrationTrait for Migration {
                     .col(pk_auto(Windows::Id))
                     .col(string(Windows::Title).not_null().unique_key())
                     .col(string(Windows::Url).not_null())
-                    .col(string(Windows::Icon))
+                    .col(string_null(Windows::Icon).null())
                     .col(integer(Windows::SortOrder).not_null())
-                    .col(integer(Windows::ProxyId).null()) // 可空的ProxyId外键
+                    .col(integer_null(Windows::ProxyId).null())
+                    .col(string_null(Windows::Shortcut).null())
                     .col(string(Windows::CreatedAt).default(Expr::current_timestamp()))
                     .col(string(Windows::UpdatedAt).default(Expr::current_timestamp()))
                     .foreign_key(
@@ -77,7 +78,8 @@ enum Windows {
     Url,
     Icon,
     SortOrder,
-    ProxyId, // 新增字段，引用Proxies表
+    ProxyId,
+    Shortcut,
     CreatedAt,
     UpdatedAt,
 }

@@ -463,17 +463,3 @@ pub fn create_or_switch_window<R: Runtime>(
     // 切换到窗口
     switch_to_window(app, &label)
 }
-
-// 隐藏quick窗口
-pub fn hide_quick_window<R: Runtime>(app: &AppHandle<R>) -> Result<(), Error> {
-    // 获取活跃快速窗口（一次只显示一个）
-    let active_window = get_active_window(app);
-
-    if let Some(window) = active_window {
-        if window.label != "control" {
-            hide_window(app, &window.label)?;
-        }
-    }
-
-    Ok(())
-}

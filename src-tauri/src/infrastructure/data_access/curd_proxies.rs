@@ -79,8 +79,8 @@ impl Insert {
         proxy_type: String,
         host: String,
         port: i32,
-        username: String,
-        password: String,
+        username: Option<String>,
+        password: Option<String>,
     ) -> Result<Model, AppError> {
         // 验证输入
         if proxy_type.is_empty() {
@@ -119,8 +119,8 @@ impl Update {
         proxy_type: Option<String>,
         host: Option<String>,
         port: Option<i32>,
-        username: Option<String>,
-        password: Option<String>,
+        username: Option<Option<String>>,
+        password: Option<Option<String>>,
     ) -> Result<Model, AppError> {
         // 验证输入
         if let Some(ref proxy_type) = proxy_type {

@@ -9,7 +9,17 @@ use crate::window::control;
 pub fn global_shortcuts_handle(app: &tauri::AppHandle, shortcut: &Shortcut, event: ShortcutEvent) {
     let open_control_window = Shortcut::new(Some(Modifiers::ALT), Code::KeyG);
     if shortcut == &open_control_window && event.state == ShortcutState::Released {
-        let _ = control::toggle_control_window::<tauri::Wry>(app);
+        let _ = tauri::async_runtime::spawn({
+            let app_handle = app.clone();
+            async move {
+                match control::toggle_control_window::<tauri::Wry>(&app_handle).await {
+                    Ok(_) => {}
+                    Err(e) => {
+                        log::error!("切换窗口失败: {:?}", e);
+                    }
+                }
+            }
+        });
     }
 }
 

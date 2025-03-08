@@ -57,9 +57,10 @@ impl Insert {
         db: &DatabaseConnection,
         title: String,
         url: String,
-        icon: String,
+        icon: Option<String>,
         sort_order: i32,
-        proxy_id: i32,
+        proxy_id: Option<i32>,
+        shortcut: Option<String>,
     ) -> Result<Model, AppError> {
         // 验证输入
         if title.is_empty() {
@@ -77,6 +78,7 @@ impl Insert {
             icon: Set(icon),
             sort_order: Set(sort_order),
             proxy_id: Set(proxy_id),
+            shortcut: Set(shortcut),
             created_at: Set(now.clone()),
             updated_at: Set(now),
             ..Default::default()
@@ -94,9 +96,10 @@ impl Update {
         id: i32,
         title: Option<String>,
         url: Option<String>,
-        icon: Option<String>,
+        icon: Option<Option<String>>,
         sort_order: Option<i32>,
-        proxy_id: Option<i32>,
+        proxy_id: Option<Option<i32>>,
+        shortcut: Option<Option<String>>,
     ) -> Result<Model, AppError> {
         // 验证输入
         if let Some(ref title) = title {
@@ -136,6 +139,10 @@ impl Update {
 
         if let Some(proxy_id) = proxy_id {
             window.proxy_id = Set(proxy_id);
+        }
+
+        if let Some(shortcut) = shortcut {
+            window.shortcut = Set(shortcut);
         }
 
         window.updated_at = Set(now);

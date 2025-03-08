@@ -99,7 +99,7 @@ pub async fn cmd_clear_cache<R: Runtime>(
 // 隐藏控制窗口
 #[tauri::command]
 pub async fn cmd_hide_control_window<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
-    match control::hide_control_window(&app_handle) {
+    match control::hide_control_window(&app_handle).await {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string()),
     }

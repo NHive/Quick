@@ -468,7 +468,7 @@ fn handle_window_focused<R: Runtime>(app_handle: &Arc<AppHandle<R>>, label: &str
 }
 
 // 当所有窗口都失去焦点时隐藏所有管理的窗口
-async fn hide_all_managed_windows<R: Runtime>(app_handle: &AppHandle<R>) {
+pub async fn hide_all_managed_windows<R: Runtime>(app_handle: &AppHandle<R>) {
     info!("隐藏所有管理的窗口");
 
     // 隐藏控制窗口
