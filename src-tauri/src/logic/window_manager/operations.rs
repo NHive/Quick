@@ -2,19 +2,18 @@
 // 窗口操作的API实现
 
 use log::{debug, info};
-use std::sync::{Arc, RwLock};
 use tauri::utils::config::WebviewUrl;
 use tauri::{AppHandle, Error, Manager, Runtime, WebviewWindowBuilder};
 
 #[cfg(target_os = "macos")]
 use tauri::TitleBarStyle;
 
+use super::focus_state::WindowFocusState;
 use super::models::{WindowConfig, WindowInfo, WindowManagerState, WindowStatus};
 use super::utils::{
-    apply_position_to_window, generate_window_label, get_quick_common_position,
-    get_window_position_and_size, set_window_position,
+    apply_position_to_window, get_quick_common_position, get_window_position_and_size,
+    set_window_position,
 };
-use crate::logic::events::app_events::WindowFocusState;
 use crate::logic::service::setting_proxies::ProxyInfoService;
 use crate::logic::service::window_manager_service::WindowManagerService;
 use url::Url;
@@ -508,12 +507,8 @@ pub fn switch_to_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(
         window.show()?;
         window.set_focus()?;
 
-        if let Some(focus_state_arc) = app.try_state::<Arc<RwLock<WindowFocusState>>>() {
-            if let Ok(mut focus_state) = focus_state_arc.write() {
-                focus_state.set_current_quick_window(Some(label.to_string()));
-                focus_state.set_showing_quick_window(true);
-            }
-        }
+        WindowFocusState::set_current_quick_window(Some(label.to_string()));
+        WindowFocusState::set_showing_quick_window(true);
     } else {
         // 窗口不存在于管理器中，无法切换
         return Err(Error::from(std::io::Error::new(

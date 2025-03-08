@@ -5,7 +5,6 @@ mod logic;
 mod types;
 mod window;
 
-use std::sync::{Arc, RwLock};
 use tauri::Manager;
 use tauri_plugin_autostart::MacosLauncher;
 
@@ -13,7 +12,6 @@ use infrastructure::db::DB;
 use infrastructure::log::init_logger;
 use infrastructure::setup::SetupService;
 use logic::events::app_events::handle_app_events;
-use logic::events::app_events::WindowFocusState;
 use logic::events::global_shortcut::{global_shortcuts_handle, register_shortcuts};
 use logic::tools::path::AppPath;
 use logic::window_manager::manager::init_window_manager;
@@ -32,9 +30,6 @@ fn setup_app(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 
     // 初始化窗口管理器
     init_window_manager(&app.app_handle())?;
-
-    // 初始化窗口焦点状态追踪器
-    app.manage(Arc::new(RwLock::new(WindowFocusState::new())));
 
     // 管理应用路径
     let app_path = AppPath::new()?;
