@@ -2,6 +2,7 @@
 use tauri::{AppHandle, Runtime};
 
 // use crate::window::quick_window;
+use crate::logic::window_manager::manager::WindowManager;
 use crate::logic::window_manager::models;
 use crate::logic::window_manager::operations;
 
@@ -41,24 +42,20 @@ pub async fn cmd_switch_to_window<R: Runtime>(
 
 // 获取所有窗口信息
 #[tauri::command]
-pub async fn cmd_get_all_windows<R: Runtime>(app_handle: AppHandle<R>) -> Vec<models::WindowInfo> {
-    operations::get_all_windows(&app_handle)
+pub async fn cmd_get_all_windows() -> Vec<models::WindowInfo> {
+    WindowManager::get_windows()
 }
 
 // 获取活动窗口信息
 #[tauri::command]
-pub async fn cmd_get_active_window<R: Runtime>(
-    app_handle: AppHandle<R>,
-) -> Option<models::WindowInfo> {
-    operations::get_active_window(&app_handle)
+pub async fn cmd_get_active_window() -> Option<models::WindowInfo> {
+    WindowManager::get_active_window()
 }
 
 // 获取之前活动的窗口信息
 #[tauri::command]
-pub async fn cmd_get_previous_window<R: Runtime>(
-    app_handle: AppHandle<R>,
-) -> Option<models::WindowInfo> {
-    operations::get_previous_active_window(&app_handle)
+pub async fn cmd_get_previous_window() -> Option<models::WindowInfo> {
+    WindowManager::get_previous_active_window()
 }
 
 // 显示上一个活动窗口

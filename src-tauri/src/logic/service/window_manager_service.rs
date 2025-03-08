@@ -1,3 +1,4 @@
+// file_path: src/logic/service/window_manager_service.rs
 use crate::infrastructure::error::AppError;
 use crate::logic::service::setting_window::WindowInfoService;
 use crate::logic::window_manager::models::WindowConfig;

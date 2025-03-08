@@ -14,7 +14,6 @@ use infrastructure::setup::SetupService;
 use logic::events::app_events::handle_app_events;
 use logic::events::global_shortcut::{global_shortcuts_handle, register_shortcuts};
 use logic::tools::path::AppPath;
-use logic::window_manager::manager::init_window_manager;
 
 #[cfg(debug_assertions)]
 use communication::api::start_server;
@@ -27,9 +26,6 @@ pub const SETTING_WINDOW_LABEL: &str = "setting"; // 设置窗口标签
 fn setup_app(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // 创建托盘
     infrastructure::tray::menu(app.handle())?;
-
-    // 初始化窗口管理器
-    init_window_manager(&app.app_handle())?;
 
     // 管理应用路径
     let app_path = AppPath::new()?;

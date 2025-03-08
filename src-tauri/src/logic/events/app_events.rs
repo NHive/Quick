@@ -1,3 +1,4 @@
+// file_path: src/logic/events/app_events.rs
 use log::{error, info, warn};
 use std::time::Duration;
 use tauri::{AppHandle, Manager, PhysicalPosition, PhysicalSize, RunEvent, Runtime, WindowEvent};
@@ -8,7 +9,7 @@ use crate::logic::window_manager::operations::{
 use crate::logic::window_manager::utils;
 
 use crate::logic::window_manager::focus_state::WindowFocusState;
-use crate::logic::window_manager::models::WindowManagerState;
+use crate::logic::window_manager::manager::WindowManager;
 
 // 应用程序事件主处理函数
 pub fn handle_app_events<R: Runtime>(app_handle: &AppHandle<R>, event: RunEvent) {
@@ -120,22 +121,16 @@ fn update_window_manager_position<R: Runtime>(
     app_handle: &std::sync::Arc<AppHandle<R>>,
     label: &str,
 ) {
-    if let Some(window_manager_state) = app_handle.try_state::<WindowManagerState>() {
-        if let Ok(mut window_manager) = window_manager_state.0.lock() {
-            // 使用utils中的函数获取规范化的窗口位置
-            match utils::get_window_position_and_size(app_handle, label) {
-                Ok(window_position) => {
-                    // 更新位置信息
-                    if window_manager.update_window_manager_position(label, window_position) {
-                        info!("已更新窗口 {} 的位置信息", label);
-                    }
-                }
-                Err(e) => {
-                    error!("获取窗口 {} 的位置和大小时出错: {}", label, e);
-                }
+    // 使用utils中的函数获取规范化的窗口位置
+    match utils::get_window_position_and_size(app_handle, label) {
+        Ok(window_position) => {
+            // 更新位置信息
+            if WindowManager::update_window_manager_position(label, window_position) {
+                info!("已更新窗口 {} 的位置信息", label);
             }
-        } else {
-            error!("无法锁定窗口管理器状态");
+        }
+        Err(e) => {
+            error!("获取窗口 {} 的位置和大小时出错: {}", label, e);
         }
     }
 }
@@ -276,13 +271,5 @@ pub async fn hide_all_managed_windows<R: Runtime>(app_handle: &AppHandle<R>) {
     // 清除当前活动的快速窗口
     WindowFocusState::set_current_quick_window(None);
     WindowFocusState::set_showing_quick_window(false);
-
-    // 清除活动窗口状态
-    if let Some(window_manager_state) = app_handle.try_state::<WindowManagerState>() {
-        if let Ok(mut window_manager) = window_manager_state.0.lock() {
-            window_manager.clear_active_window();
-        } else {
-            error!("无法锁定窗口管理器以清除活动窗口状态");
-        }
-    }
+    WindowManager::clear_active_window();
 }

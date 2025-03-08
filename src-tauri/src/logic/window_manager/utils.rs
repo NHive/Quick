@@ -17,7 +17,6 @@ use tauri::PhysicalPosition;
 #[cfg(not(target_os = "macos"))]
 use tauri::PhysicalSize;
 
-use super::models::WindowManagerState;
 use super::models::WindowPosition;
 
 /// 生成窗口标签
@@ -43,31 +42,6 @@ pub fn generate_window_label(url: &str, title: &str) -> String {
         title,
         label.chars().take(20).collect::<String>()
     )
-}
-
-/// 获取快速窗口共享位置
-///
-/// 从窗口管理器中获取所有快速窗口共享的位置信息
-///
-/// # 参数
-///
-/// * `app` - Tauri 应用句柄
-///
-/// # 返回值
-///
-/// 如果有共享位置，返回 `Some(WindowPosition)`，否则返回 `None`
-pub fn get_quick_common_position<R: tauri::Runtime>(app: &AppHandle<R>) -> Option<WindowPosition> {
-    // 获取窗口管理器状态
-    let window_manager_state = app.state::<WindowManagerState>();
-
-    // 锁定窗口管理器
-    let position = if let Ok(window_manager) = window_manager_state.0.lock() {
-        window_manager.get_quick_common_position()
-    } else {
-        None
-    };
-
-    position
 }
 
 /// 获取窗口位置和大小

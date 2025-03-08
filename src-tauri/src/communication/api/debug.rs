@@ -5,13 +5,12 @@ use serde::Deserialize;
 use serde_json::json;
 use tauri::Manager;
 
+use crate::logic::window_manager::manager::WindowManager;
 use crate::logic::window_manager::operations::{
-    clear_window_cache, close_window, get_active_window, get_all_windows,
-    get_previous_active_window, hide_window, load_window_configs_from_db, show_previous_window,
-    switch_to_window,
+    clear_window_cache, close_window, hide_window, load_window_configs_from_db,
+    show_previous_window, switch_to_window,
 };
 
-use crate::logic::window_manager::models::WindowManagerState;
 // 添加日志相关的导入
 use crate::infrastructure::log::{LogQuery, TempLogger};
 
@@ -28,31 +27,15 @@ async fn gen_204() -> impl Responder {
 
 // 用于获取所有窗口信息的接口
 #[get("/api/debug/windows")]
-async fn get_windows(app_state: web::Data<AppState>) -> impl Responder {
-    let app_handle = match app_state.app_handle.lock() {
-        Ok(handle) => handle.clone(),
-        Err(_) => {
-            return HttpResponse::InternalServerError()
-                .json(json!({"error": "Failed to lock app handle"}))
-        }
-    };
-
-    let windows = get_all_windows(&app_handle);
+async fn get_windows() -> impl Responder {
+    let windows = WindowManager::get_windows();
     HttpResponse::Ok().json(windows)
 }
 
 // 获取当前活动窗口信息
 #[get("/api/debug/windows/active")]
-async fn get_active(app_state: web::Data<AppState>) -> impl Responder {
-    let app_handle = match app_state.app_handle.lock() {
-        Ok(handle) => handle.clone(),
-        Err(_) => {
-            return HttpResponse::InternalServerError()
-                .json(json!({"error": "Failed to lock app handle"}))
-        }
-    };
-
-    match get_active_window(&app_handle) {
+async fn get_active() -> impl Responder {
+    match WindowManager::get_active_window() {
         Some(window) => HttpResponse::Ok().json(window),
         None => HttpResponse::NotFound().json(json!({"error": "No active window"})),
     }
@@ -60,16 +43,8 @@ async fn get_active(app_state: web::Data<AppState>) -> impl Responder {
 
 // 获取上一个活动窗口信息
 #[get("/api/debug/windows/previous")]
-async fn get_previous(app_state: web::Data<AppState>) -> impl Responder {
-    let app_handle = match app_state.app_handle.lock() {
-        Ok(handle) => handle.clone(),
-        Err(_) => {
-            return HttpResponse::InternalServerError()
-                .json(json!({"error": "Failed to lock app handle"}))
-        }
-    };
-
-    match get_previous_active_window(&app_handle) {
+async fn get_previous() -> impl Responder {
+    match WindowManager::get_previous_active_window() {
         Some(window) => HttpResponse::Ok().json(window),
         None => HttpResponse::NotFound().json(json!({"error": "No previous window"})),
     }
@@ -100,28 +75,11 @@ struct WindowLabelQuery {
 
 // 获取特定窗口信息
 #[get("/api/debug/windows/info")]
-async fn get_window_info(
-    app_state: web::Data<AppState>,
-    query: Query<WindowLabelQuery>,
-) -> impl Responder {
-    let app_handle = match app_state.app_handle.lock() {
-        Ok(handle) => handle.clone(),
-        Err(_) => {
-            return HttpResponse::InternalServerError()
-                .json(json!({"error": "Failed to lock app handle"}))
-        }
-    };
-
-    if let Some(window_manager_state) = app_handle.try_state::<WindowManagerState>() {
-        if let Ok(window_manager) = window_manager_state.0.try_lock() {
-            match window_manager.get_window_info(&query.label) {
-                Some(window) => return HttpResponse::Ok().json(window),
-                None => return HttpResponse::NotFound().json(json!({"error": "Window not found"})),
-            }
-        }
+async fn get_window_info(query: Query<WindowLabelQuery>) -> impl Responder {
+    match WindowManager::get_window_info(&query.label) {
+        Some(window) => return HttpResponse::Ok().json(window),
+        None => return HttpResponse::NotFound().json(json!({"error": "Window not found"})),
     }
-
-    HttpResponse::InternalServerError().json(json!({"error": "Failed to access window manager"}))
 }
 
 // 切换窗口请求参数
@@ -169,28 +127,14 @@ async fn configure_window_list(app_state: web::Data<AppState>) -> impl Responder
 
 // 获取窗口管理器当前状态的详细信息
 #[get("/api/debug/windows/state")]
-async fn get_window_manager_state(app_state: web::Data<AppState>) -> impl Responder {
-    let app_handle = match app_state.app_handle.lock() {
-        Ok(handle) => handle.clone(),
-        Err(_) => {
-            return HttpResponse::InternalServerError()
-                .json(json!({"error": "Failed to lock app handle"}))
-        }
-    };
-
-    if let Some(window_manager_state) = app_handle.try_state::<WindowManagerState>() {
-        if let Ok(window_manager) = window_manager_state.0.try_lock() {
-            let response = json!({
-                "windows": window_manager.get_windows(),
-                "active_window": window_manager.get_active_window(),
-                "previous_active_window": window_manager.get_previous_active_window(),
-                "quick_common_position": window_manager.get_quick_common_position(),
-            });
-            return HttpResponse::Ok().json(response);
-        }
-    }
-
-    HttpResponse::InternalServerError().json(json!({"error": "Failed to access window manager"}))
+async fn get_window_manager_state() -> impl Responder {
+    let response = json!({
+        "windows": WindowManager::get_windows(),
+        "active_window": WindowManager::get_active_window(),
+        "previous_active_window": WindowManager::get_previous_active_window(),
+        "quick_common_position": WindowManager::get_quick_common_position(),
+    });
+    return HttpResponse::Ok().json(response);
 }
 
 // 查询日志的接口

@@ -2,7 +2,6 @@
 // 包含所有窗口管理相关的数据结构定义
 
 use serde::{Deserialize, Serialize};
-use std::sync::{Arc, Mutex};
 
 // =============== 数据结构 ===============
 
@@ -65,6 +64,3 @@ pub struct WindowPosition {
     /// 高度
     pub height: f64,
 }
-
-/// 全局窗口管理器状态
-pub struct WindowManagerState(pub Arc<Mutex<super::manager::WindowManager>>);

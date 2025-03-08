@@ -1,3 +1,4 @@
+// file_path: src/logic/window_manager/focus_state.rs
 use log::info;
 use once_cell::sync::Lazy;
 use std::collections::HashSet;
