@@ -2,6 +2,7 @@
 mod communication;
 mod infrastructure;
 mod logic;
+mod types;
 mod window;
 
 use std::sync::{Arc, RwLock};
