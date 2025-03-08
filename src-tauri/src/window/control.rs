@@ -8,7 +8,7 @@ use crate::CONTROL_WINDOW_LABEL;
 
 pub async fn show_control_window<R: Runtime>(app: &tauri::AppHandle<R>) -> Result<(), Error> {
     // 显示quick窗口时会显示控制窗口
-    operations::show_previous_window(app)?;
+    operations::show_previous_window(app).await?;
     Ok(())
 }
 
@@ -26,7 +26,7 @@ pub async fn toggle_control_window<R: Runtime>(app: &tauri::AppHandle<R>) -> Res
         hide_all_managed_windows(app).await;
     } else {
         // 显示quick窗口时会显示控制窗口
-        operations::show_previous_window(app)?;
+        operations::show_previous_window(app).await?;
     }
 
     Ok(())

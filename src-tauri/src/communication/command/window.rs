@@ -19,10 +19,8 @@ pub async fn open_setting_window<R: Runtime>(app_handle: AppHandle<R>) -> Result
 
 // 加载窗口配置
 #[tauri::command]
-pub async fn cmd_load_configure_windows<R: Runtime>(
-    app_handle: AppHandle<R>,
-) -> Result<(), String> {
-    match operations::load_window_configs_from_db(&app_handle).await {
+pub async fn cmd_load_configure_windows() -> Result<(), String> {
+    match operations::load_window_configs_from_db().await {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string()),
     }
@@ -34,7 +32,7 @@ pub async fn cmd_switch_to_window<R: Runtime>(
     app_handle: AppHandle<R>,
     label: String,
 ) -> Result<(), String> {
-    match operations::switch_to_window(&app_handle, &label) {
+    match operations::switch_to_window(&app_handle, &label).await {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string()),
     }
@@ -61,7 +59,7 @@ pub async fn cmd_get_previous_window() -> Option<models::WindowInfo> {
 // 显示上一个活动窗口
 #[tauri::command]
 pub async fn cmd_show_previous_window<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
-    match operations::show_previous_window(&app_handle) {
+    match operations::show_previous_window(&app_handle).await {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string()),
     }
@@ -70,7 +68,7 @@ pub async fn cmd_show_previous_window<R: Runtime>(app_handle: AppHandle<R>) -> R
 // 清理指定所有的浏览器缓存
 #[tauri::command]
 pub async fn cmd_clear_cache<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
-    match operations::clear_window_cache(&app_handle) {
+    match operations::clear_window_cache(&app_handle).await {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string()),
     }

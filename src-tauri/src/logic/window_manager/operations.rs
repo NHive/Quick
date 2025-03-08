@@ -10,27 +10,17 @@ use tauri::TitleBarStyle;
 
 use super::focus_state::WindowFocusState;
 use super::manager::WindowManager;
-use super::models::{WindowConfig, WindowStatus};
+use super::models::WindowStatus;
 use super::utils::{apply_position_to_window, get_window_position_and_size, set_window_position};
-use crate::logic::service::setting_proxies::ProxyInfoService;
 use crate::logic::service::window_manager_service::WindowManagerService;
-use url::Url;
-
-/// 配置窗口列表
-pub fn configure_windows<R: Runtime>(
-    _app: &AppHandle<R>,
-    configs: Vec<WindowConfig>,
-) -> Result<(), Error> {
-    WindowManager::set_window_configs(configs);
-    Ok(())
-}
+use crate::logic::tools::proxy;
 
 /// 加载数据库中的窗口配置
-pub async fn load_window_configs_from_db<R: Runtime>(app: &AppHandle<R>) -> Result<(), Error> {
+pub async fn load_window_configs_from_db() -> Result<(), Error> {
     match WindowManagerService::load_window_configs().await {
         Ok(configs) => {
             info!("从数据库加载了 {} 个窗口配置", configs.len());
-            configure_windows(app, configs)?;
+            WindowManager::set_window_configs(configs);
             Ok(())
         }
         Err(e) => {
@@ -44,7 +34,7 @@ pub async fn load_window_configs_from_db<R: Runtime>(app: &AppHandle<R>) -> Resu
 }
 
 /// 显示前一个活跃窗口,如果前一个活跃窗口不存在，则显示已注册的第一个窗口
-pub fn show_previous_window<R: Runtime>(app: &AppHandle<R>) -> Result<(), Error> {
+pub async fn show_previous_window<R: Runtime>(app: &AppHandle<R>) -> Result<(), Error> {
     // 获取前一个活跃窗口的标签
     let previous_label = WindowManager::get_previous_active_window().map(|info| info.label);
 
@@ -71,7 +61,7 @@ pub fn show_previous_window<R: Runtime>(app: &AppHandle<R>) -> Result<(), Error>
 
     // 如果有可用窗口，切换到该窗口
     if let Some(label) = window_label {
-        switch_to_window(app, &label)?;
+        switch_to_window(app, &label).await?;
         position_control_window_below_quick(app, &label)?;
     }
 
@@ -79,7 +69,7 @@ pub fn show_previous_window<R: Runtime>(app: &AppHandle<R>) -> Result<(), Error>
 }
 
 /// 创建或获取窗口
-pub fn get_or_create_window<R: Runtime>(
+pub async fn get_or_create_window<R: Runtime>(
     app: &AppHandle<R>,
     label: &str,
 ) -> Result<tauri::WebviewWindow<R>, Error> {
@@ -100,6 +90,12 @@ pub fn get_or_create_window<R: Runtime>(
         )));
     };
 
+    let proxy_url = if let Some(proxy_id) = proxy_id {
+        proxy::get_proxy_url(proxy_id).await
+    } else {
+        None
+    };
+
     // 创建新窗口
     let mut builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App(url.into()))
         .title(&title)
@@ -111,62 +107,10 @@ pub fn get_or_create_window<R: Runtime>(
         .decorations(false)
         .always_on_top(true);
 
-    // 如果设置了代理，则应用代理配置
-    if let Some(proxy_id) = proxy_id {
-        let proxy_info = match app
-            .state::<tauri::async_runtime::Runtime>()
-            .block_on(ProxyInfoService::get_by_id(proxy_id))
-        {
-            Ok(proxy) => Some(proxy),
-            Err(err) => {
-                log::warn!("获取代理配置失败 (ID: {}): {}", proxy_id, err);
-                None
-            }
-        };
-
-        if let Some(proxy) = proxy_info {
-            // 构建代理URL
-            let proxy_url_str = match proxy.r#type.as_str() {
-                "http" => format!("http://{}:{}", proxy.host, proxy.port),
-                "socks5" => format!("socks5://{}:{}", proxy.host, proxy.port),
-                _ => {
-                    log::warn!("不支持的代理类型: {}", proxy.r#type);
-                    String::new()
-                }
-            };
-
-            // 如果有用户名和密码，添加认证信息
-            let proxy_url_with_auth = if !proxy_url_str.is_empty() {
-                if let (Some(username), Some(password)) = (proxy.username, proxy.password) {
-                    // 将认证信息添加到URL中
-                    if let Ok(mut url) = Url::parse(&proxy_url_str) {
-                        if url.set_username(&username).is_err() {
-                            log::warn!("无法设置代理用户名");
-                        }
-                        if url.set_password(Some(&password)).is_err() {
-                            log::warn!("无法设置代理密码");
-                        }
-                        url.to_string()
-                    } else {
-                        proxy_url_str
-                    }
-                } else {
-                    proxy_url_str
-                }
-            } else {
-                String::new()
-            };
-
-            // 应用代理配置
-            if !proxy_url_with_auth.is_empty() {
-                if let Ok(proxy_url) = Url::parse(&proxy_url_with_auth) {
-                    log::info!("为窗口 {} 应用代理: {}", label, proxy_url);
-                    builder = builder.proxy_url(proxy_url);
-                } else {
-                    log::error!("代理URL格式无效: {}", proxy_url_with_auth);
-                }
-            }
-        }
+    // 如果有代理，设置代理
+    if let Some(proxy_url) = proxy_url {
+        log::info!("应用代理: {}", proxy_url);
+        builder = builder.proxy_url(proxy_url);
     }
 
     // 根据操作系统设置不同的窗口样式
@@ -286,14 +230,14 @@ pub fn sync_positions_after_control_moved<R: Runtime>(app: &AppHandle<R>) -> Res
 }
 
 /// 清空所有的浏览器缓存
-pub fn clear_window_cache<R: Runtime>(app: &AppHandle<R>) -> Result<(), Error> {
+pub async fn clear_window_cache<R: Runtime>(app: &AppHandle<R>) -> Result<(), Error> {
     let window_info = WindowManager::get_active_window().ok_or_else(|| {
         Error::from(std::io::Error::new(
             std::io::ErrorKind::NotFound,
             "未找到活跃窗口",
         ))
     })?;
-    let window = get_or_create_window(app, &window_info.label)?;
+    let window = get_or_create_window(app, &window_info.label).await?;
     window.clear_all_browsing_data()?;
     Ok(())
 }
@@ -349,7 +293,7 @@ pub fn hide_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(), Er
 }
 
 /// 切换到指定窗口
-pub fn switch_to_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(), Error> {
+pub async fn switch_to_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(), Error> {
     // 切换窗口管理器中的窗口状态
     if !WindowManager::switch_to_window(label) {
         return Err(Error::from(std::io::Error::new(
@@ -364,7 +308,7 @@ pub fn switch_to_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(
         .map(|w| w.label);
 
     // 获取或创建窗口
-    let window = get_or_create_window(app, label)?;
+    let window = get_or_create_window(app, label).await?;
 
     log::info!("切换到窗口 {}", label);
 

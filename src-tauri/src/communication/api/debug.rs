@@ -61,7 +61,7 @@ async fn show_previous(app_state: web::Data<AppState>) -> impl Responder {
         }
     };
 
-    match show_previous_window(&app_handle) {
+    match show_previous_window(&app_handle).await {
         Ok(_) => HttpResponse::Ok().json(json!({"success": true})),
         Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
     }
@@ -102,7 +102,7 @@ async fn switch_window(
         }
     };
 
-    match switch_to_window(&app_handle, &req.label) {
+    match switch_to_window(&app_handle, &req.label).await {
         Ok(_) => HttpResponse::Ok().json(json!({"success": true})),
         Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
     }
@@ -110,16 +110,8 @@ async fn switch_window(
 
 // 加载窗口配置
 #[post("/api/debug/windows/load_configs")]
-async fn configure_window_list(app_state: web::Data<AppState>) -> impl Responder {
-    let app_handle = match app_state.app_handle.lock() {
-        Ok(handle) => handle.clone(),
-        Err(_) => {
-            return HttpResponse::InternalServerError()
-                .json(json!({"error": "Failed to lock app handle"}))
-        }
-    };
-
-    match load_window_configs_from_db(&app_handle).await {
+async fn configure_window_list() -> impl Responder {
+    match load_window_configs_from_db().await {
         Ok(_) => HttpResponse::Ok().json(json!({"success": true})),
         Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
     }
@@ -275,7 +267,7 @@ async fn clear_cache(app_state: web::Data<AppState>) -> impl Responder {
         }
     };
 
-    match clear_window_cache(&app_handle) {
+    match clear_window_cache(&app_handle).await {
         Ok(_) => HttpResponse::Ok().json(json!({"success": true, "message": "窗口缓存已清除"})),
         Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
     }

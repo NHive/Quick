@@ -5,7 +5,6 @@ use tauri::{
     AppHandle, Error,
 };
 
-use crate::logic::window_manager::operations;
 use crate::window::control;
 
 // 托盘菜单
@@ -33,8 +32,9 @@ pub fn menu(app: &AppHandle) -> Result<TrayIcon, Error> {
             } = event
             {
                 if let (MouseButton::Left, MouseButtonState::Up) = (button, button_state) {
-                    let _ = control::show_control_window::<tauri::Wry>(tray.app_handle());
-                    let _ = operations::show_previous_window::<tauri::Wry>(tray.app_handle());
+                    let _ = tauri::async_runtime::block_on(control::show_control_window::<tauri::Wry>(
+                        tray.app_handle(),
+                    ));
                 }
             }
         })
