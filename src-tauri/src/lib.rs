@@ -7,18 +7,16 @@ mod window;
 
 use std::sync::{Arc, RwLock};
 use tauri::Manager;
-
 use tauri_plugin_autostart::MacosLauncher;
 
 use infrastructure::db::DB;
 use infrastructure::log::init_logger;
 use infrastructure::setup::SetupService;
+use logic::events::app_events::handle_app_events;
+use logic::events::app_events::WindowFocusState;
+use logic::events::global_shortcut::{global_shortcuts_handle, register_shortcuts};
 use logic::tools::path::AppPath;
 use logic::window_manager::manager::init_window_manager;
-
-use communication::events::app_events::handle_app_events;
-use communication::events::app_events::WindowFocusState;
-use communication::events::global_shortcut::{global_shortcuts_handle, register_shortcuts};
 
 #[cfg(debug_assertions)]
 use communication::api::start_server;

@@ -14,7 +14,7 @@ use super::utils::{
     apply_position_to_window, generate_window_label, get_quick_common_position,
     get_window_position_and_size, set_window_position,
 };
-use crate::communication::events::app_events::WindowFocusState;
+use crate::logic::events::app_events::WindowFocusState;
 
 /// 配置窗口列表
 pub fn configure_windows<R: Runtime>(

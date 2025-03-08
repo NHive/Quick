@@ -2,7 +2,7 @@
 // use super::quick_window::show_previous_window;
 use tauri::{self, Error, Manager, Runtime};
 
-use crate::communication::events::app_events::hide_all_managed_windows;
+use crate::logic::events::app_events::hide_all_managed_windows;
 use crate::logic::window_manager::operations;
 use crate::CONTROL_WINDOW_LABEL;
 

@@ -2,7 +2,7 @@
 use std::sync::{Arc, RwLock};
 use tauri::{AppHandle, Manager, Runtime};
 
-use crate::communication::events::app_events::WindowFocusState;
+use crate::logic::events::app_events::WindowFocusState;
 
 #[tauri::command]
 pub async fn get_window_pin<R: Runtime>(app_handle: AppHandle<R>) -> Result<bool, String> {
