@@ -38,12 +38,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { onMounted, onUnmounted, ref } from 'vue';
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 
-// Window configurations
-const windowConfigs = [
-  { title: "deepseek", url: "https://chat.deepseek.com" },
-  { title: "doubao", url: "https://www.doubao.com/chat/" },
-  { title: "kimi", url: "https://kimi.moonshot.cn/" }
-];
 
 // Define the structure of window information
 interface WindowInfo {
@@ -68,7 +62,7 @@ const isPinned = ref(false);
 // Configure windows
 const configureWindows = async () => {
   try {
-    await invoke('cmd_configure_windows', { configs: windowConfigs });
+    await invoke('cmd_load_configure_windows');
     console.log('Windows configured successfully');
     await refreshWindowsList();
   } catch (error) {
@@ -194,12 +188,6 @@ onMounted(async () => {
 
     // Get initial pin state
     await getWindowPinState();
-
-    // Set up a periodic refresh to keep tabs in sync
-    const refreshInterval = setInterval(refreshWindowsList, 3000);
-    onUnmounted(() => {
-      clearInterval(refreshInterval);
-    });
 
   } catch (error) {
     console.error('Error setting up window event listener:', error);

@@ -30,6 +30,12 @@ pub struct WindowInfo {
     pub loaded: bool,
     /// 窗口位置和大小信息
     pub position: Option<WindowPosition>,
+    /// 图标URL
+    pub icon: Option<String>,
+    /// 快捷键
+    pub shortcut: Option<String>,
+    /// 关联的代理ID
+    pub proxy_id: Option<i32>,
 }
 
 /// 窗口配置结构体
@@ -39,6 +45,12 @@ pub struct WindowConfig {
     pub title: String,
     /// 窗口URL
     pub url: String,
+    /// 图标URL
+    pub icon: Option<String>,
+    /// 快捷键
+    pub shortcut: Option<String>,
+    /// 关联的代理ID
+    pub proxy_id: Option<i32>,
 }
 
 /// 窗口位置和大小信息

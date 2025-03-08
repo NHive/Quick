@@ -22,7 +22,6 @@ fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(show_previous);
     cfg.service(get_window_info);
     cfg.service(switch_window);
-    cfg.service(create_window);
     cfg.service(configure_window_list);
     cfg.service(get_window_manager_state);
     cfg.service(get_logs);

@@ -12,9 +12,8 @@ use window_setup::*;
 pub fn register_commands<R: tauri::Runtime>() -> impl Fn(tauri::Builder<R>) -> tauri::Builder<R> {
     move |app_builder| {
         app_builder.invoke_handler(generate_handler![
-            cmd_create_window,
             open_setting_window,
-            cmd_configure_windows,
+            cmd_load_configure_windows,
             cmd_switch_to_window,
             cmd_get_all_windows,
             cmd_get_active_window,

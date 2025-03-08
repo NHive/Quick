@@ -6,12 +6,12 @@ use serde_json::json;
 use tauri::Manager;
 
 use crate::logic::window_manager::operations::{
-    clear_window_cache, close_window, configure_windows, create_or_switch_window,
-    get_active_window, get_all_windows, get_previous_active_window, hide_window,
-    show_previous_window, switch_to_window,
+    clear_window_cache, close_window, get_active_window, get_all_windows,
+    get_previous_active_window, hide_window, load_window_configs_from_db, show_previous_window,
+    switch_to_window,
 };
 
-use crate::logic::window_manager::models::{WindowConfig, WindowManagerState};
+use crate::logic::window_manager::models::WindowManagerState;
 // 添加日志相关的导入
 use crate::infrastructure::log::{LogQuery, TempLogger};
 
@@ -150,19 +150,9 @@ async fn switch_window(
     }
 }
 
-// 创建窗口请求参数
-#[derive(Deserialize)]
-struct CreateWindowRequest {
-    url: String,
-    title: String,
-}
-
-// 创建或切换到窗口
-#[post("/api/debug/windows/create")]
-async fn create_window(
-    app_state: web::Data<AppState>,
-    req: web::Json<CreateWindowRequest>,
-) -> impl Responder {
+// 加载窗口配置
+#[post("/api/debug/windows/load_configs")]
+async fn configure_window_list(app_state: web::Data<AppState>) -> impl Responder {
     let app_handle = match app_state.app_handle.lock() {
         Ok(handle) => handle.clone(),
         Err(_) => {
@@ -171,33 +161,7 @@ async fn create_window(
         }
     };
 
-    match create_or_switch_window(&app_handle, &req.url, &req.title) {
-        Ok(_) => HttpResponse::Ok().json(json!({"success": true})),
-        Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
-    }
-}
-
-// 配置窗口请求参数
-#[derive(Deserialize)]
-struct ConfigureWindowsRequest {
-    configs: Vec<WindowConfig>,
-}
-
-// 配置窗口列表
-#[post("/api/debug/windows/configure")]
-async fn configure_window_list(
-    app_state: web::Data<AppState>,
-    req: web::Json<ConfigureWindowsRequest>,
-) -> impl Responder {
-    let app_handle = match app_state.app_handle.lock() {
-        Ok(handle) => handle.clone(),
-        Err(_) => {
-            return HttpResponse::InternalServerError()
-                .json(json!({"error": "Failed to lock app handle"}))
-        }
-    };
-
-    match configure_windows(&app_handle, req.configs.clone()) {
+    match load_window_configs_from_db(&app_handle).await {
         Ok(_) => HttpResponse::Ok().json(json!({"success": true})),
         Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
     }
@@ -356,18 +320,9 @@ async fn init_setup(
     }
 }
 
-// 清除窗口缓存请求参数
-#[derive(Deserialize)]
-struct ClearCacheRequest {
-    label: String,
-}
-
 // 清除指定窗口的缓存
 #[post("/api/debug/windows/clear_cache")]
-async fn clear_cache(
-    app_state: web::Data<AppState>,
-    req: web::Json<ClearCacheRequest>,
-) -> impl Responder {
+async fn clear_cache(app_state: web::Data<AppState>) -> impl Responder {
     let app_handle = match app_state.app_handle.lock() {
         Ok(handle) => handle.clone(),
         Err(_) => {
@@ -376,7 +331,7 @@ async fn clear_cache(
         }
     };
 
-    match clear_window_cache(&app_handle, &req.label) {
+    match clear_window_cache(&app_handle) {
         Ok(_) => HttpResponse::Ok().json(json!({"success": true, "message": "窗口缓存已清除"})),
         Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
     }

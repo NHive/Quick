@@ -7,19 +7,6 @@ use crate::logic::window_manager::operations;
 
 use crate::window::{control, setting};
 
-// 通过url和title创建窗口
-#[tauri::command]
-pub async fn cmd_create_window<R: Runtime>(
-    app_handle: AppHandle<R>,
-    url: String,
-    title: String,
-) -> Result<(), String> {
-    match operations::create_or_switch_window(&app_handle, &url, &title) {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e.to_string()),
-    }
-}
-
 // 打开设置窗口
 #[tauri::command]
 pub async fn open_setting_window<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
@@ -29,13 +16,12 @@ pub async fn open_setting_window<R: Runtime>(app_handle: AppHandle<R>) -> Result
     }
 }
 
-//  配置窗口列表
+// 加载窗口配置
 #[tauri::command]
-pub async fn cmd_configure_windows<R: Runtime>(
+pub async fn cmd_load_configure_windows<R: Runtime>(
     app_handle: AppHandle<R>,
-    configs: Vec<models::WindowConfig>,
 ) -> Result<(), String> {
-    match operations::configure_windows(&app_handle, configs) {
+    match operations::load_window_configs_from_db(&app_handle).await {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string()),
     }
@@ -84,13 +70,10 @@ pub async fn cmd_show_previous_window<R: Runtime>(app_handle: AppHandle<R>) -> R
     }
 }
 
-// 清理指定标签的浏览器缓存
+// 清理指定所有的浏览器缓存
 #[tauri::command]
-pub async fn cmd_clear_cache<R: Runtime>(
-    app_handle: AppHandle<R>,
-    label: String,
-) -> Result<(), String> {
-    match operations::clear_window_cache(&app_handle, &label) {
+pub async fn cmd_clear_cache<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
+    match operations::clear_window_cache(&app_handle) {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string()),
     }

@@ -15,6 +15,9 @@ use super::utils::{
     get_window_position_and_size, set_window_position,
 };
 use crate::logic::events::app_events::WindowFocusState;
+use crate::logic::service::setting_proxies::ProxyInfoService;
+use crate::logic::service::window_manager_service::WindowManagerService;
+use url::Url;
 
 /// 配置窗口列表
 pub fn configure_windows<R: Runtime>(
@@ -32,6 +35,24 @@ pub fn configure_windows<R: Runtime>(
         std::io::ErrorKind::Other,
         "无法访问窗口管理器",
     )))
+}
+
+/// 加载数据库中的窗口配置
+pub async fn load_window_configs_from_db<R: Runtime>(app: &AppHandle<R>) -> Result<(), Error> {
+    match WindowManagerService::load_window_configs().await {
+        Ok(configs) => {
+            info!("从数据库加载了 {} 个窗口配置", configs.len());
+            configure_windows(app, configs)?;
+            Ok(())
+        }
+        Err(e) => {
+            log::error!("加载窗口配置失败: {}", e);
+            Err(Error::from(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!("从数据库加载窗口配置失败: {}", e),
+            )))
+        }
+    }
 }
 
 /// 获取所有窗口信息
@@ -134,8 +155,8 @@ pub fn get_or_create_window<R: Runtime>(
         }
     };
 
-    let (url, title) = if let Some(info) = window_info {
-        (info.url, info.title)
+    let (url, title, icon, proxy_id) = if let Some(info) = window_info {
+        (info.url, info.title, info.icon, info.proxy_id)
     } else {
         return Err(Error::from(std::io::Error::new(
             std::io::ErrorKind::NotFound,
@@ -153,6 +174,64 @@ pub fn get_or_create_window<R: Runtime>(
         .skip_taskbar(true)
         .decorations(false)
         .always_on_top(true);
+
+    // 如果设置了代理，则应用代理配置
+    if let Some(proxy_id) = proxy_id {
+        let proxy_info = match app
+            .state::<tauri::async_runtime::Runtime>()
+            .block_on(ProxyInfoService::get_by_id(proxy_id))
+        {
+            Ok(proxy) => Some(proxy),
+            Err(err) => {
+                log::warn!("获取代理配置失败 (ID: {}): {}", proxy_id, err);
+                None
+            }
+        };
+
+        if let Some(proxy) = proxy_info {
+            // 构建代理URL
+            let proxy_url_str = match proxy.r#type.as_str() {
+                "http" => format!("http://{}:{}", proxy.host, proxy.port),
+                "socks5" => format!("socks5://{}:{}", proxy.host, proxy.port),
+                _ => {
+                    log::warn!("不支持的代理类型: {}", proxy.r#type);
+                    String::new()
+                }
+            };
+
+            // 如果有用户名和密码，添加认证信息
+            let proxy_url_with_auth = if !proxy_url_str.is_empty() {
+                if let (Some(username), Some(password)) = (proxy.username, proxy.password) {
+                    // 将认证信息添加到URL中
+                    if let Ok(mut url) = Url::parse(&proxy_url_str) {
+                        if url.set_username(&username).is_err() {
+                            log::warn!("无法设置代理用户名");
+                        }
+                        if url.set_password(Some(&password)).is_err() {
+                            log::warn!("无法设置代理密码");
+                        }
+                        url.to_string()
+                    } else {
+                        proxy_url_str
+                    }
+                } else {
+                    proxy_url_str
+                }
+            } else {
+                String::new()
+            };
+
+            // 应用代理配置
+            if !proxy_url_with_auth.is_empty() {
+                if let Ok(proxy_url) = Url::parse(&proxy_url_with_auth) {
+                    log::info!("为窗口 {} 应用代理: {}", label, proxy_url);
+                    builder = builder.proxy_url(proxy_url);
+                } else {
+                    log::error!("代理URL格式无效: {}", proxy_url_with_auth);
+                }
+            }
+        }
+    }
 
     // 根据操作系统设置不同的窗口样式
     #[cfg(target_os = "macos")]
@@ -294,9 +373,15 @@ pub fn sync_positions_after_control_moved<R: Runtime>(app: &AppHandle<R>) -> Res
     Ok(())
 }
 
-/// 清空窗口缓存
-pub fn clear_window_cache<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(), Error> {
-    let window = get_or_create_window(app, label)?;
+/// 清空所有的浏览器缓存
+pub fn clear_window_cache<R: Runtime>(app: &AppHandle<R>) -> Result<(), Error> {
+    let window_info = get_active_window(app).ok_or_else(|| {
+        Error::from(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "未找到活跃窗口",
+        ))
+    })?;
+    let window = get_or_create_window(app, &window_info.label)?;
     window.clear_all_browsing_data()?;
     Ok(())
 }
@@ -318,7 +403,7 @@ pub fn close_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(), E
     if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
         if let Ok(mut window_manager) = window_manager_state.0.try_lock() {
             if let Some(mut active_window) = window_manager.get_active_window() {
-                if active_window.label == label {
+                if (active_window.label == label) {
                     active_window.loaded = false; // 如果窗口关闭，标记为未加载
                     window_manager.clear_active_window();
                 }
@@ -438,28 +523,4 @@ pub fn switch_to_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(
     }
 
     Ok(())
-}
-
-// 为了兼容性实现
-pub fn create_or_switch_window<R: Runtime>(
-    app: &AppHandle<R>,
-    url: &str,
-    title: &str,
-) -> Result<(), Error> {
-    // 从URL生成窗口标签
-    let label = generate_window_label(url, title);
-
-    // 如果管理器中没有此窗口，添加配置
-    {
-        if let Some(window_manager_state) = app.try_state::<WindowManagerState>() {
-            if let Ok(mut window_manager) = window_manager_state.0.try_lock() {
-                if window_manager.get_window_info(&label).is_none() {
-                    window_manager.add_window(&label, title, url);
-                }
-            }
-        }
-    }
-
-    // 切换到窗口
-    switch_to_window(app, &label)
 }

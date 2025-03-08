@@ -40,7 +40,7 @@ impl WindowManager {
             is_updating: false,
             updating_source: None,
             last_update_time: std::time::Instant::now(),
-            update_lock_duration: 100, // 默认锁定时间,
+            update_lock_duration: 50, // 默认锁定时间,
         }
     }
 
@@ -128,6 +128,9 @@ impl WindowManager {
                 status,
                 loaded,
                 position,
+                icon: config.icon.clone(),
+                shortcut: config.shortcut.clone(),
+                proxy_id: config.proxy_id,
             };
 
             // 保存到哈希表
@@ -144,32 +147,6 @@ impl WindowManager {
             // 如果没有激活窗口但有窗口，设置第一个为激活
             self.active_window = self.windows.keys().next().map(|k| k.clone());
         }
-    }
-
-    /// 添加新窗口
-    pub fn add_window(&mut self, label: &str, title: &str, url: &str) {
-        // 将当前激活窗口更新为后台状态
-        if let Some(active_label) = &self.active_window {
-            // 保存为前一个激活窗口
-            self.previous_active_window = Some(active_label.clone());
-
-            if let Some(active_window) = self.windows.get_mut(active_label) {
-                active_window.status = WindowStatus::Background;
-            }
-        }
-
-        // 创建新窗口信息
-        let window_info = WindowInfo {
-            label: label.to_string(),
-            title: title.to_string(),
-            url: url.to_string(),
-            status: WindowStatus::Foreground,
-            loaded: false,
-            position: None,
-        };
-
-        self.windows.insert(label.to_string().clone(), window_info);
-        self.active_window = Some(label.to_string());
     }
 
     /// 切换到指定窗口
