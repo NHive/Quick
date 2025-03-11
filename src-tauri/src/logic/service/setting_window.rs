@@ -117,7 +117,7 @@ impl WindowInfoService {
         let db = DB::get_connection().await?;
         let windows = curd_windows::Query::find_all(&db).await?;
 
-        let window_infos = windows
+        let mut window_infos = windows
             .into_iter()
             .map(|window| WindowInfo {
                 id: window.id,
@@ -130,7 +130,10 @@ impl WindowInfoService {
                 created_at: window.created_at,
                 updated_at: window.updated_at,
             })
-            .collect();
+            .collect::<Vec<WindowInfo>>();
+            
+        // 按照sort_order排序
+        window_infos.sort_by(|a, b| a.sort_order.cmp(&b.sort_order));
 
         Ok(window_infos)
     }

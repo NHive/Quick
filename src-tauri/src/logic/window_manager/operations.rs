@@ -62,7 +62,8 @@ pub async fn show_previous_window<R: Runtime>(app: &AppHandle<R>) -> Result<(), 
     // 如果有可用窗口，切换到该窗口
     if let Some(label) = window_label {
         switch_to_window(app, &label).await?;
-        position_control_window_below_quick(app, &label)?;
+        // switch_to_window中会显示控制窗口
+        // position_control_window_below_quick(app, &label)?;
     }
 
     Ok(())
@@ -96,11 +97,27 @@ pub async fn get_or_create_window<R: Runtime>(
         None
     };
 
+    // 获取共享窗口位置和大小
+    let shared_position = WindowManager::get_quick_common_position();
+
+    // 设置窗口的大小和位置（使用共享位置或默认值）
+    let (width, height, x, y) = if let Some(position) = shared_position {
+        info!(
+            "使用共享位置创建窗口 {}: x={}, y={}, width={}, height={}",
+            label, position.x, position.y, position.width, position.height
+        );
+        (position.width, position.height, position.x, position.y)
+    } else {
+        info!("使用默认位置和大小创建窗口 {}", label);
+        (1200.0, 800.0, 0.0, 0.0)
+    };
+
     // 创建新窗口
     let mut builder = WebviewWindowBuilder::new(app, label, WebviewUrl::App(url.into()))
         .title(&title)
         .fullscreen(false)
-        .inner_size(1200.0, 800.0)
+        .inner_size(width, height)
+        .position(x, y)
         .resizable(true)
         .visible(false)
         .skip_taskbar(true)
@@ -294,6 +311,41 @@ pub fn hide_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(), Er
 
 /// 切换到指定窗口
 pub async fn switch_to_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> Result<(), Error> {
+    // 获取当前的活跃窗口,如果不是要切换的窗口，则隐藏
+    let previous_window = WindowManager::get_active_window()
+        .filter(|w| w.label != label)
+        .map(|w| w.label);
+
+    // 隐藏当前活跃窗口
+    if let Some(hide_label) = previous_window {
+        if let Some(other_window) = app.get_webview_window(&hide_label) {
+            other_window.hide()?;
+        }
+    }
+
+    // 记录新的活跃窗口
+    WindowFocusState::set_current_quick_window(Some(label.to_string()));
+
+    // 获取或创建窗口
+    let window = get_or_create_window(app, label).await?;
+
+    log::info!("切换到窗口 {}", label);
+
+    if let Some(position) = WindowManager::get_quick_common_position() {
+        info!(
+            "应用共享位置到窗口 {}: x={}, y={}, width={}, height={}",
+            label, position.x, position.y, position.width, position.height
+        );
+
+        apply_position_to_window(&window, &position)?;
+    }
+
+    // 等待窗口位置设置完成
+    tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+
+    window.show()?;
+    window.set_focus()?;
+
     // 切换窗口管理器中的窗口状态
     if !WindowManager::switch_to_window(label) {
         return Err(Error::from(std::io::Error::new(
@@ -302,43 +354,11 @@ pub async fn switch_to_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> Re
         )));
     }
 
-    // 获取前一个活跃窗口标签（如果与当前不同）
-    let previous_window = WindowManager::get_previous_active_window()
-        .filter(|w| w.label != label)
-        .map(|w| w.label);
-
-    // 获取或创建窗口
-    let window = get_or_create_window(app, label).await?;
-
-    log::info!("切换到窗口 {}", label);
-
-    // 如果不是控制窗口，应用共享位置
-    if label != "control" {
-        if let Some(position) = WindowManager::get_quick_common_position() {
-            info!(
-                "应用共享位置到窗口 {}: x={}, y={}, width={}, height={}",
-                label, position.x, position.y, position.width, position.height
-            );
-
-            apply_position_to_window(&window, &position)?;
-        }
-    }
+    // 记录当前quick窗口为活跃窗口
+    WindowFocusState::set_showing_quick_window(true);
 
     // 将控制窗口定位在此快速窗口下方
     position_control_window_below_quick(app, label)?;
-
-    // 隐藏其他窗口
-    if let Some(hide_label) = previous_window {
-        if let Some(other_window) = app.get_webview_window(&hide_label) {
-            other_window.hide()?;
-        }
-    }
-
-    window.show()?;
-    window.set_focus()?;
-
-    WindowFocusState::set_current_quick_window(Some(label.to_string()));
-    WindowFocusState::set_showing_quick_window(true);
 
     Ok(())
 }
