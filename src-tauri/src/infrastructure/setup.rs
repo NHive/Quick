@@ -123,12 +123,29 @@ impl SetupService {
     }
 
     pub async fn init_setup_async(&self, defaults: HashMap<String, Value>) -> Result<(), AppError> {
+        let mut cache_updates = HashMap::new();
+
         for (key, value) in defaults {
-            // 只有当键不存在时才设置默认值
-            if self.get_setup_async(&key).await?.is_none() {
-                self.set_setup_async(&key, &value).await?;
+            // 检查数据库中是否已存在该键
+            if let Some(db_value) = self.fetch_from_db(&key).await? {
+                // 数据库中存在，使用数据库值更新缓存
+                let parsed_value: Value =
+                    serde_json::from_str(&db_value).map_err(|e| DbErr::Custom(e.to_string()))?;
+                cache_updates.insert(key, (db_value, parsed_value));
+            } else {
+                // 数据库中不存在，仅使用默认值更新缓存
+                let value_str =
+                    serde_json::to_string(&value).map_err(|e| DbErr::Custom(e.to_string()))?;
+                cache_updates.insert(key, (value_str, value));
             }
         }
+
+        // 批量更新缓存以减少锁的持有时间
+        let mut cache = self.cache.write().await;
+        for (key, (value_str, _)) in cache_updates {
+            cache.insert(key, value_str);
+        }
+
         Ok(())
     }
 
