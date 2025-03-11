@@ -1,10 +1,12 @@
 // file_path: src/communication/command/mod.rs
+mod setting;
 mod setup;
 mod window;
 mod window_setup;
 
 use tauri::generate_handler;
 
+use setting::*;
 use setup::*;
 use window::*;
 use window_setup::*;
@@ -26,6 +28,14 @@ pub fn register_commands<R: tauri::Runtime>() -> impl Fn(tauri::Builder<R>) -> t
             get_window_pin,
             set_window_pin,
             cmd_hide_control_window,
+            cmd_add_window,
+            cmd_update_window,
+            cmd_delete_window,
+            cmd_create_proxy,
+            cmd_delete_proxy,
+            cmd_update_proxy,
+            cmd_get_setting_proxy_configs,
+            cmd_get_setting_window_configs,
         ])
     }
 }
