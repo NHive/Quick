@@ -1,22 +1,27 @@
 <template>
-  <div class="container">
-    <ul class="controlBox">
-      <li class="controlIcon collapse" @click="openSettingWindow">
-        <div class="iconWrapper" v-html="icons.collapse"></div>
-      </li>
-      <li class="controlIcon moveIcon">
-        <!-- 专门为拖拽创建一个div，完全覆盖整个移动图标 -->
-        <div class="dragHandle" data-tauri-drag-region></div>
-        <div class="iconWrapper" v-html="icons.move"></div>
-      </li>
-      <li class="controlIcon homeIcon" @click="openWindowByLink">
-        <div class="iconWrapper" v-html="icons.home"></div>
-      </li>
-      <li class="controlIcon settingIcon" @click="openSettingWindow">
-        <div class="iconWrapper" v-html="icons.setting"></div>
-      </li>
-    </ul>
-  </div>
+  <a-config-provider
+    :theme="{
+      token: { colorPrimary: '#f9fbff' },
+    }"
+  >
+    <div class="container">
+      <ul class="controlBox">
+        <li class="controlIcon collapse" @click="openSettingWindow">
+          <div class="iconWrapper" v-html="icons.collapse"></div>
+        </li>
+        <li class="controlIcon moveIcon">
+          <!-- 专门为拖拽创建一个div，完全覆盖整个移动图标 -->
+          <div class="dragHandle" data-tauri-drag-region></div>
+          <div class="iconWrapper" v-html="icons.move"></div>
+        </li>
+        <li class="controlIcon homeIcon" @click="openWindowByLink">
+          <div class="iconWrapper" v-html="icons.home"></div>
+        </li>
+        <li class="controlIcon settingIcon" @click="openSettingWindow">
+          <div class="iconWrapper" v-html="icons.setting"></div>
+        </li>
+      </ul></div
+  ></a-config-provider>
 </template>
 
 <script setup lang="ts">

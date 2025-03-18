@@ -164,7 +164,9 @@
       "cleanConfirmContent": "Are you sure you want to clean the history data? This action cannot be undone.",
       "confirm": "Confirm",
       "cancel": "Cancel"
-    }
+    },
+    "cancel": "Cancel",
+    "confirm": "confirm"
   },
   "clipboard": {
     "search": {
@@ -225,7 +227,18 @@
     "notUpdated": "It is currently the latest version",
     "updateNow": "A new version has been detected and the software is being updated",
     "newVersion": "A new version has been detected",
-    "confirmUpdateNow": "Whether to restart and update the app immediately"
+    "confirmUpdateNow": "Whether to restart and update the app immediately",
+    "confimrDelete": "Whether to delete this data",
+    "dataError": "There is an error in data, please try again",
+    "deleteFail": "Deletion failed, please try again",
+    "deleteSuccess": "Delete successfully",
+    "inputHotkey": "Please enter shortcut keys",
+    "inputTitle": "Please enter a title",
+    "inputUrl": "Please enter the window link",
+    "titleHelp": "Use the default title when the title is not entered",
+    "updateFail": "Update failed, please try again",
+    "updateSuccess": "Update successfully",
+    "urlFormat": "Please enter the correct link"
   },
   "verify": {
     "email": "Bind email",
@@ -248,7 +261,8 @@
   "menu": {
     "delete": "delete",
     "detail": "detail",
-    "moveTo": "move To"
+    "moveTo": "move To",
+    "setDefault": "Set as default options"
   },
   "onboarding": {
     "skipButton": "Skip",
@@ -292,6 +306,11 @@
     "slogan3": "20+ Premium Features",
     "slogan4": "Priority Support & Service",
     "hotkey": "shortcut key",
-    "url": "Link"
+    "url": "Link",
+    "add": "New",
+    "addWin": "Added a new window link",
+    "editWin": "Edit window link",
+    "proxyRule": "Proxy rules",
+    "title": "title"
   }
 }

@@ -2,7 +2,6 @@
   <a-config-provider
     :locale="localeLang === 'en-US' ? enUS : zhCN"
     :theme="{
-      token: { colorPrimary: '#f9fbff' },
       algorithm:
         themeModule === 'dark'
           ? antdTheme.darkAlgorithm

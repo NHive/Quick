@@ -50,9 +50,6 @@ export const useLanguage = () => {
   const updateLanguage = async (value: string) => {
     try {
       const locale = value === "auto" ? getSystemLanguage() : value
-
-      await invoke("set_locale", { locale: locale })
-
       i18n.global.locale.value = locale
       currentLocale.value = value // 保存用户的选择
       await Storage.set(SETTING_STORAGE_KEYS.LOCALE, value)

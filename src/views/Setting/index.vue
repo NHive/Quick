@@ -148,7 +148,7 @@ onMounted(async () => {
 .setting-content {
   flex: 1;
   // background: #f9f9f9;
-  background:v-bind("token.colorBgMask");
+  background:v-bind("token.colorBgLayout");
   padding: 20px;
   overflow-y: auto;
   height: 100vh;

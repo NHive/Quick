@@ -164,7 +164,9 @@
       "cleanConfirmContent": "确定要清理历史数据吗？此操作无法撤销。",
       "confirm": "确认",
       "cancel": "取消"
-    }
+    },
+    "cancel": "取消",
+    "confirm": "确认"
   },
   "clipboard": {
     "search": {
@@ -225,7 +227,18 @@
     "notUpdated": "当前已是最新版本",
     "updateNow": "检测到新版本，正在更新软件",
     "newVersion": "检测到新版本",
-    "confirmUpdateNow": "是否立刻重启并更新应用"
+    "confirmUpdateNow": "是否立刻重启并更新应用",
+    "updateFail": "更新失败,请重试",
+    "deleteFail": "删除失败,请重试",
+    "updateSuccess": "更新成功",
+    "deleteSuccess": "删除成功",
+    "confimrDelete": "是否删除此数据",
+    "inputUrl": "请输入窗口链接",
+    "inputHotkey": "请输入快捷键",
+    "inputTitle": "请输入标题",
+    "titleHelp": "未输入标题时使用网站默认标题",
+    "urlFormat": "请输入正确的链接",
+    "dataError": "数据出错,请重试"
   },
   "verify": {
     "email": "绑定邮箱",
@@ -248,7 +261,8 @@
   "menu": {
     "delete": "删除",
     "detail": "详情",
-    "moveTo": "移动到"
+    "moveTo": "移动到",
+    "setDefault": "设为默认选项"
   },
   "onboarding": {
     "skipButton": "跳过指引",
@@ -292,6 +306,11 @@
     "slogan3": "尊享20+特权功能",
     "slogan4": "专属客服 优先响应",
     "url": "链接",
-    "hotkey": "快捷键"
+    "hotkey": "快捷键",
+    "title": "标题",
+    "proxyRule": "代理规则",
+    "add": "新增",
+    "addWin": "新增窗口链接",
+    "editWin": "编辑窗口链接"
   }
 }

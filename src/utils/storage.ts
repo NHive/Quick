@@ -37,7 +37,8 @@ export class Storage {
   // 初始化
   static async initStorage() {
     try {
-      await invoke("init_setup", { defaults: defaultConfig })
+      const result = await invoke("init_setup", { defaults: defaultConfig })
+      console.log("initS", result)
     } catch (error) {
       console.log("initStorage Fail", error)
     }
@@ -74,14 +75,25 @@ export interface ProxyConfigType {
 }
 
 // 快捷键类型定义
-export interface HotkeysType {
+export interface UrlsType {
   id: number,
   url: string,
+  title: string,
+  icon?: string,
+  isDefault: boolean,
+  proxyRule?: number
+}
+export interface EditUrlsType extends UrlsType {
   hotkey: string
 }
 
+export interface ShowUrlsType extends UrlsType {
+  winHotkey: string,
+  macHotkey: string,
+}
+
 // 默认配置类型定义
-export interface defaultConfigType {
+export interface DefaultConfigType {
   theme: string, // 主题色
   themeMode: 'auto' | 'light' | 'dark', // 主题模式：亮|暗
   locale: 'zh-CN' | 'en-US', // 国际化
@@ -91,25 +103,34 @@ export interface defaultConfigType {
   // 代理设置
   proxyConfig: ProxyConfigType,
   // 快捷键设置
-  hotkeys: Array<HotkeysType>
+  urls: Array<ShowUrlsType>
 
 }
 
 // 默认配置值
-export const defaultConfig: defaultConfigType = {
+export const defaultConfig: DefaultConfigType = {
   theme: '', // 主题色
   themeMode: 'light', // 主题模式：亮|暗
   locale: 'zh-CN', // 国际化
   bootUp: false, // 是否开机启动
   silentStart: false, // 是否静默启动
   winLocation: 'mouseLocation', // 主窗口位置，鼠标位置｜上次位置
-  // 代理设置
+  // TODO 代理设置
   proxyConfig: {
-    proxyType: 'unUsed',
+    proxyType: 'auto',
     address: '',
     name: '',
     pwd: ''
   },
-  // 快捷键设置
-  hotkeys: []
+  // 窗口链接数据设置
+  urls: [{
+    id: 1,
+    title: '',
+    icon: '',
+    url: 'https://www.deepseek.com/',
+    isDefault: true,
+    winHotkey: "alt+c",
+    macHotkey: "option+c",
+    proxyRule: 0
+  }],
 }
