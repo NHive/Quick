@@ -1,9 +1,7 @@
 // file_path: src/logic/platform/macos/utils.rs
-use cocoa::base::{id, nil, BOOL};
 use core_foundation::base::TCFType;
 use core_foundation_sys::dictionary::CFDictionaryRef;
 use core_foundation_sys::string::kCFStringEncodingUTF8;
-use objc::{msg_send, sel, sel_impl};
 use std::ffi::CString;
 use std::ptr;
 
@@ -13,6 +11,7 @@ extern "C" {
 }
 
 // 只检查权限
+#[allow(unused)]
 pub fn check_accessibility_permissions() -> bool {
     check_accessibility_permissions_with_prompt(false)
 }
@@ -54,17 +53,3 @@ fn check_accessibility_permissions_with_prompt(show_prompt: bool) -> bool {
     unsafe { AXIsProcessTrustedWithOptions(options) }
 }
 
-// 聚焦指定pid的窗口
-pub fn focus_window_by_pid(pid: i32) -> bool {
-    unsafe {
-        let app: id = msg_send![objc::class!(NSRunningApplication), runningApplicationWithProcessIdentifier:pid];
-
-        if app != nil {
-            // 使用 NSApplicationActivateAllWindows | NSApplicationActivateIgnoringOtherApps 选项激活应用
-            // 0x2 = NSApplicationActivateAllWindows
-            // 0x1 = NSApplicationActivateIgnoringOtherApps
-            let _: BOOL = msg_send![app, activateWithOptions:0x1];
-        }
-        false
-    }
-}

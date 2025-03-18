@@ -2,22 +2,18 @@
 mod communication;
 mod infrastructure;
 mod logic;
+mod types;
 mod window;
 
-use std::sync::{Arc, Mutex};
 use tauri::Manager;
-
 use tauri_plugin_autostart::MacosLauncher;
 
 use infrastructure::db::DB;
 use infrastructure::log::init_logger;
 use infrastructure::setup::SetupService;
+use logic::events::app_events::handle_app_events;
+use logic::events::global_shortcut::{global_shortcuts_handle, register_shortcuts};
 use logic::tools::path::AppPath;
-use logic::window_manager::manager::init_window_manager;
-
-use communication::events::app_events::handle_app_events;
-use communication::events::app_events::WindowFocusState;
-use communication::events::global_shortcut::{global_shortcuts_handle, register_shortcuts};
 
 #[cfg(debug_assertions)]
 use communication::api::start_server;
@@ -30,12 +26,6 @@ pub const SETTING_WINDOW_LABEL: &str = "setting"; // 设置窗口标签
 fn setup_app(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // 创建托盘
     infrastructure::tray::menu(app.handle())?;
-
-    // 初始化窗口管理器
-    init_window_manager(&app.app_handle())?;
-
-    // 初始化窗口焦点状态追踪器
-    app.manage(Arc::new(Mutex::new(WindowFocusState::new())));
 
     // 管理应用路径
     let app_path = AppPath::new()?;

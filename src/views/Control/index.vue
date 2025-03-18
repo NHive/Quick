@@ -5,23 +5,44 @@
     }"
   >
     <div class="container">
-      <ul class="controlBox">
-        <li class="controlIcon collapse" @click="openSettingWindow">
-          <div class="iconWrapper" v-html="icons.collapse"></div>
-        </li>
-        <li class="controlIcon moveIcon">
-          <!-- 专门为拖拽创建一个div，完全覆盖整个移动图标 -->
-          <div class="dragHandle" data-tauri-drag-region></div>
-          <div class="iconWrapper" v-html="icons.move"></div>
-        </li>
-        <li class="controlIcon homeIcon" @click="openWindowByLink">
-          <div class="iconWrapper" v-html="icons.home"></div>
-        </li>
-        <li class="controlIcon settingIcon" @click="openSettingWindow">
-          <div class="iconWrapper" v-html="icons.setting"></div>
-        </li>
-      </ul></div
-  ></a-config-provider>
+      <div class="controlPanel">
+        <!-- Left side: Function buttons -->
+        <ul class="functionButtons">
+          <li class="controlIcon collapse" @click="hideControlWindow">
+            <div class="iconWrapper" v-html="icons.collapse"></div>
+          </li>
+          <li class="controlIcon moveIcon">
+            <div class="dragHandle" data-tauri-drag-region></div>
+            <div class="iconWrapper" v-html="icons.move"></div>
+          </li>
+          <li class="controlIcon homeIcon" @click="openWindowByLink">
+            <div class="iconWrapper" v-html="icons.home"></div>
+          </li>
+          <li class="controlIcon settingIcon" @click="openSettingWindow">
+            <div class="iconWrapper" v-html="icons.setting"></div>
+          </li>
+          <li class="controlIcon pinIcon" @click="togglePinWindow">
+            <div
+              class="iconWrapper"
+              v-html="isPinned ? icons.pinFilled : icons.pinOutline"
+            ></div>
+          </li>
+        </ul>
+
+        <!-- Right side: Window tabs -->
+        <div class="windowTabs">
+          <div
+            v-for="window in windows"
+            :key="window.label"
+            :class="['windowTab', { active: window.status === 'Front' }]"
+            @click="switchToWindow(window.label)"
+          >
+            <span class="tabTitle">{{ window.title }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </a-config-provider>
 </template>
 
 <script setup lang="ts">
@@ -29,50 +50,74 @@ import { theme as antdTheme } from 'ant-design-vue';
 
 import { icons } from '@/utils/svg';
 import { invoke } from '@tauri-apps/api/core';
-import { onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 
-const data = antdTheme.useToken();
-console.log('#theme', data, data.token.value);
+// Define the structure of window information
+interface WindowInfo {
+  label: string;
+  title: string;
+  url: string;
+  status: 'Front' | 'Back';
+  loaded: boolean;
+  position?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}
 
-// 定义窗口配置
-const windowConfigs = [
-  { title: 'deepseek', url: 'https://chat.deepseek.com' },
-  { title: 'doubao', url: 'https://www.doubao.com/chat/' },
-];
+// Reactive windows list
+const windows = ref<WindowInfo[]>([]);
+// Track window pin state
+const isPinned = ref(false);
+const { token } = antdTheme.useToken();
 
-// 调用 cmd_configure_windows 命令
+// Configure windows
 const configureWindows = async () => {
   try {
-    await invoke('cmd_configure_windows', { configs: windowConfigs });
+    await invoke('cmd_load_configure_windows');
     console.log('Windows configured successfully');
-    await getAllWindows();
-    await getActiveWindow();
+    await refreshWindowsList();
   } catch (error) {
     console.error('Failed to configure windows:', error);
   }
 };
 
-// 获取所有窗口信息
-const getAllWindows = async () => {
+// Refresh the windows list
+const refreshWindowsList = async () => {
   try {
-    const windows = await invoke('cmd_get_all_windows');
-    console.log('All windows:', windows);
+    const allWindows = await invoke<WindowInfo[]>('cmd_get_all_windows');
+    windows.value = allWindows;
+    console.log('All windows:', windows.value);
+
+    // Also update active window
+    await getActiveWindow();
   } catch (error) {
     console.error('Failed to get all windows:', error);
   }
 };
 
-// 获取活动窗口信息
+// Get active window
 const getActiveWindow = async () => {
   try {
-    const activeWindow = await invoke('cmd_get_active_window');
+    const activeWindow = await invoke<WindowInfo>('cmd_get_active_window');
     console.log('Active window:', activeWindow);
+
+    // Update active status in windows list
+    if (activeWindow) {
+      windows.value = windows.value.map((win) => ({
+        ...win,
+        status: win.label === activeWindow.label ? 'Front' : 'Back',
+      }));
+    }
   } catch (error) {
     console.error('Failed to get active window:', error);
   }
 };
 
+// Open settings window
 const openSettingWindow = async () => {
   try {
     await invoke('open_setting_window');
@@ -81,42 +126,83 @@ const openSettingWindow = async () => {
   }
 };
 
+// Hide control window
+const hideControlWindow = async () => {
+  try {
+    await invoke('cmd_hide_control_window');
+  } catch (error) {
+    console.error('Failed to hide control window:', error);
+  }
+};
+
+// Open window by link
 const openWindowByLink = async () => {
   try {
     await invoke('cmd_create_window', {
       url: 'https://chat.deepseek.com',
       title: 'deepseek',
     });
+
+    // Refresh the windows list after opening a new window
+    setTimeout(refreshWindowsList, 500);
   } catch (error) {
     console.error('Failed to open window with URL:', error);
   }
 };
 
-// 添加窗口显示监听
+// Switch to a specific window
+const switchToWindow = async (label: string) => {
+  try {
+    await invoke('cmd_switch_to_window', { label });
+    await refreshWindowsList(); // Update tab statuses
+  } catch (error) {
+    console.error(`Failed to switch to window ${label}:`, error);
+  }
+};
+
+// Toggle window pin state
+const togglePinWindow = async () => {
+  try {
+    isPinned.value = !isPinned.value;
+    await invoke('set_window_pin', { pin: isPinned.value });
+    console.log(`Window pin state set to: ${isPinned.value}`);
+  } catch (error) {
+    console.error('Failed to toggle window pin state:', error);
+  }
+};
+
+// Get current pin state
+const getWindowPinState = async () => {
+  try {
+    isPinned.value = await invoke('get_window_pin');
+    console.log(`Window pin state loaded: ${isPinned.value}`);
+  } catch (error) {
+    console.error('Failed to get window pin state:', error);
+  }
+};
+
+// Set up event listeners when component is mounted
 onMounted(async () => {
   try {
     const window = getCurrentWebviewWindow();
 
-    // 监听窗口显示事件
-    const unlisten = await window.onFocusChanged(() => {
-      console.log('Window is shown, opening link window');
-      openWindowByLink();
+    // Listen for focus changes to update tabs
+    const unlisten = await window.onFocusChanged(async (focused) => {
+      if (focused) {
+        await refreshWindowsList();
+      }
     });
 
-    // 清理函数
+    // Clean up on unmount
     onUnmounted(() => {
       unlisten();
     });
 
-    // // 如果窗口已经是可见状态，也调用一次
-    // const isVisible = await window.isVisible();
-    // if (isVisible) {
-    //   console.log('Window is already visible, opening link window');
-    //   openWindowByLink();
-    // }
-
-    // 配置窗口列表并获取窗口信息
+    // Initialize windows configuration
     await configureWindows();
+
+    // Get initial pin state
+    await getWindowPinState();
   } catch (error) {
     console.error('Error setting up window event listener:', error);
   }
@@ -128,18 +214,29 @@ onMounted(async () => {
   width: 100%;
   height: 100vh;
   margin: 0;
-  background-color: v-bind('data.token.value.colorBgLayout');
+  background-color: v-bind('token.colorBgLayout');
   overflow: hidden;
   transition: all 0.3s;
 }
 
-.controlBox {
-  list-style: none;
-  padding: 10px 15px;
+.controlPanel {
+  width: 100%;
   display: flex;
-  flex-direction: row; /* 由纵向改为横向 */
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 10px;
+  background-color: #f0f2f5;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.functionButtons {
+  list-style: none;
+  display: flex;
+  flex-direction: row;
   justify-content: flex-start;
   align-items: center;
+  margin: 0;
+  padding: 0;
 
   .controlIcon {
     position: relative;
@@ -150,56 +247,105 @@ onMounted(async () => {
     width: 30px;
     height: 30px;
     cursor: pointer;
-    margin-right: 20px; /* 由下边距改为右边距 */
-    margin-bottom: 0; /* 移除下边距 */
-  }
-  :deep(svg) {
-    path {
-      fill: v-bind('data.token.value.colorTextBase');
-      transition: fill 0.2s;
+    margin-right: 12px;
+    color: #888;
+    :deep(svg) {
+      path {
+        fill: v-bind('token.colorTextBase');
+        transition: fill 0.2s;
+      }
+      &:hover {
+        color: #333;
+      }
+    }
+
+    .moveIcon {
+      cursor: move;
+    }
+
+    .dragHandle {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 10;
+    }
+
+    .iconWrapper {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      z-index: 5;
+      pointer-events: none;
+      opacity: 0.8;
+    }
+
+    .collapse .iconWrapper {
+      width: 20px;
+      height: 20px;
+    }
+
+    .homeIcon,
+    .settingIcon,
+    .pinIcon {
+      z-index: 15;
     }
   }
 
-  .moveIcon {
-    cursor: move;
-  }
-
-  .dragHandle {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 10;
-  }
-
-  .iconWrapper {
-    width: 24px;
-    height: 24px;
+  .windowTabs {
     display: flex;
-    justify-content: center;
+    flex-direction: row;
     align-items: center;
-    position: relative;
-    z-index: 5;
-    pointer-events: none;
-    /* 防止图标本身接收点击事件 */
-    opacity: 0.8;
+    overflow-x: auto;
+    max-width: 70%;
+    scrollbar-width: thin;
+
+    &::-webkit-scrollbar {
+      height: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #ccc;
+      border-radius: 3px;
+    }
   }
 
-  .collapse .iconWrapper {
-    width: 20px;
-    height: 20px;
-  }
-
-  .collapse {
+  .windowTab {
+    padding: 5px 10px;
+    margin-left: 2px;
+    min-width: 100px;
+    max-width: 160px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e4e6e8;
+    border-radius: 4px 4px 0 0;
     cursor: pointer;
-  }
+    user-select: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 
-  /* 为每个图标添加特定的类，便于调试和维护 */
-  .homeIcon,
-  .settingIcon {
-    z-index: 15;
-    /* 确保点击区域在最上层 */
+    &:hover {
+      background-color: #d8dade;
+    }
+
+    &.active {
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-bottom: none;
+      font-weight: 500;
+    }
+
+    .tabTitle {
+      font-size: 13px;
+      color: #333;
+    }
   }
 }
 </style>

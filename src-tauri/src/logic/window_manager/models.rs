@@ -2,7 +2,6 @@
 // 包含所有窗口管理相关的数据结构定义
 
 use serde::{Deserialize, Serialize};
-use std::sync::{Arc, Mutex};
 
 // =============== 数据结构 ===============
 
@@ -30,6 +29,12 @@ pub struct WindowInfo {
     pub loaded: bool,
     /// 窗口位置和大小信息
     pub position: Option<WindowPosition>,
+    /// 图标URL
+    pub icon: Option<String>,
+    /// 快捷键
+    pub shortcut: Option<String>,
+    /// 关联的代理ID
+    pub proxy_id: Option<i32>,
 }
 
 /// 窗口配置结构体
@@ -39,6 +44,12 @@ pub struct WindowConfig {
     pub title: String,
     /// 窗口URL
     pub url: String,
+    /// 图标URL
+    pub icon: Option<String>,
+    /// 快捷键
+    pub shortcut: Option<String>,
+    /// 关联的代理ID
+    pub proxy_id: Option<i32>,
 }
 
 /// 窗口位置和大小信息
@@ -53,6 +64,3 @@ pub struct WindowPosition {
     /// 高度
     pub height: f64,
 }
-
-/// 全局窗口管理器状态
-pub struct WindowManagerState(pub Arc<Mutex<super::manager::WindowManager>>);

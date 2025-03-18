@@ -32,7 +32,9 @@ pub fn menu(app: &AppHandle) -> Result<TrayIcon, Error> {
             } = event
             {
                 if let (MouseButton::Left, MouseButtonState::Up) = (button, button_state) {
-                    let _ = control::show_control_window::<tauri::Wry>(tray.app_handle());
+                    let _ = tauri::async_runtime::block_on(control::show_control_window::<tauri::Wry>(
+                        tray.app_handle(),
+                    ));
                 }
             }
         })

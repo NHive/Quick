@@ -22,7 +22,6 @@ fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(show_previous);
     cfg.service(get_window_info);
     cfg.service(switch_window);
-    cfg.service(create_window);
     cfg.service(configure_window_list);
     cfg.service(get_window_manager_state);
     cfg.service(get_logs);
@@ -30,6 +29,9 @@ fn init(cfg: &mut web::ServiceConfig) {
     cfg.service(set_setup);
     cfg.service(get_all_setups);
     cfg.service(init_setup);
+    cfg.service(clear_cache);
+    cfg.service(close_window_handler);
+    cfg.service(hide_window_handler);
 }
 
 pub fn start_server(app_handle: AppHandle) -> Result<(), AppError> {

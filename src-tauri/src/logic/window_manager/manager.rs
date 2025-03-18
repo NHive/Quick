@@ -1,261 +1,365 @@
 // file_path: src/logic/window_manager/manager.rs
-// 窗口管理器的核心实现
-
+use log::{debug, info, warn};
+use once_cell::sync::Lazy;
+use parking_lot::Mutex;
 use std::collections::HashMap;
-use tauri::AppHandle;
-use tauri::Manager;
+use std::time::{Duration, Instant};
 
 use super::models::*;
+use super::utils;
 
-/// 窗口管理器
-/// 负责管理所有窗口的状态和信息
-pub struct WindowManager {
-    /// 存储所有窗口信息的哈希表
+// 位置比较的误差容忍度
+const POSITION_EPSILON: f64 = 1.0;
+// 更新锁定默认时长(毫秒)
+const DEFAULT_UPDATE_LOCK_DURATION: u64 = 50;
+
+// 窗口存储组件
+struct WindowsStore {
+    // 存储所有窗口信息的哈希表
     windows: HashMap<String, WindowInfo>,
-    /// 当前激活的窗口标签
+}
+
+// 激活状态组件
+struct ActiveState {
+    // 当前激活的窗口标签
     active_window: Option<String>,
-    /// 前一个激活的窗口标签
+    // 前一个激活的窗口标签
     previous_active_window: Option<String>,
-    /// 窗口配置列表
-    window_configs: Vec<WindowConfig>,
-    /// 控制窗口的位置
-    control_position: Option<WindowPosition>,
-    /// 是否正在更新状态(避免递归更新)
+}
+
+// 位置状态组件
+struct PositionState {
+    // 快速窗口的共享位置
+    quick_common_position: Option<WindowPosition>,
+}
+
+// 更新控制组件
+struct UpdateState {
+    // 是否正在更新状态(避免递归更新)
     is_updating: bool,
-    /// 最后一次更新的窗口标签
+    // 最后一次更新的窗口标签
     updating_source: Option<String>,
-    /// 最后一次更新的时间戳
-    last_update_time: std::time::Instant,
-    /// 更新锁定时间(毫秒)
+    // 最后一次更新的时间戳
+    last_update_time: Instant,
+    // 更新锁定时间(毫秒)
     update_lock_duration: u64,
 }
 
+// 初始化各个状态组件的全局实例
+static WINDOWS: Lazy<Mutex<WindowsStore>> = Lazy::new(|| {
+    info!("初始化窗口存储组件");
+    Mutex::new(WindowsStore {
+        windows: HashMap::new(),
+    })
+});
+
+static ACTIVE: Lazy<Mutex<ActiveState>> = Lazy::new(|| {
+    info!("初始化激活状态组件");
+    Mutex::new(ActiveState {
+        active_window: None,
+        previous_active_window: None,
+    })
+});
+
+static POSITION: Lazy<Mutex<PositionState>> = Lazy::new(|| {
+    info!("初始化位置状态组件");
+    Mutex::new(PositionState {
+        quick_common_position: None,
+    })
+});
+
+static UPDATE: Lazy<Mutex<UpdateState>> = Lazy::new(|| {
+    info!("初始化更新控制组件");
+    Mutex::new(UpdateState {
+        is_updating: false,
+        updating_source: None,
+        last_update_time: Instant::now(),
+        update_lock_duration: DEFAULT_UPDATE_LOCK_DURATION,
+    })
+});
+
+// 窗口位置相关辅助函数
+fn is_position_similar(p1: &WindowPosition, p2: &WindowPosition) -> bool {
+    (p1.x - p2.x).abs() < POSITION_EPSILON
+        && (p1.y - p2.y).abs() < POSITION_EPSILON
+        && (p1.width - p2.width).abs() < POSITION_EPSILON
+        && (p1.height - p2.height).abs() < POSITION_EPSILON
+}
+
+// 公共API封装
+pub struct WindowManager;
+
 impl WindowManager {
-    /// 创建新的窗口管理器实例
-    pub fn new() -> Self {
-        WindowManager {
-            windows: HashMap::new(),
-            active_window: None,
-            previous_active_window: None,
-            window_configs: Vec::new(),
-            control_position: None,
-            is_updating: false,
-            updating_source: None,
-            last_update_time: std::time::Instant::now(),
-            update_lock_duration: 300, // 默认300毫秒锁定时间
-        }
-    }
-
     /// 获取所有窗口信息
-    pub fn get_windows(&self) -> Vec<WindowInfo> {
-        self.windows.values().cloned().collect()
+    pub fn get_windows() -> Vec<WindowInfo> {
+        let windows_store = WINDOWS.lock();
+        windows_store.windows.values().cloned().collect()
     }
 
-    /// 获取特定窗口的信息
-    pub fn get_window_info(&self, label: &str) -> Option<WindowInfo> {
-        self.windows.get(label).cloned()
+    /// 获取快速窗口共享位置
+    pub fn get_quick_common_position() -> Option<WindowPosition> {
+        let position_state = POSITION.lock();
+        position_state.quick_common_position.clone()
     }
 
-    /// 获取当前激活窗口的信息
-    pub fn get_active_window(&self) -> Option<WindowInfo> {
-        match &self.active_window {
-            Some(label) => self.windows.get(label).cloned(),
-            None => None,
-        }
-    }
-
-    /// 获取前一个激活窗口的信息
-    pub fn get_previous_active_window(&self) -> Option<WindowInfo> {
-        match &self.previous_active_window {
-            Some(label) => self.windows.get(label).cloned(),
-            None => None,
-        }
-    }
-
-    /// 设置窗口配置列表
-    pub fn set_window_configs(&mut self, configs: Vec<WindowConfig>) {
-        self.window_configs = configs;
-    }
-
-    /// 获取窗口配置列表
-    pub fn get_window_configs(&self) -> Vec<WindowConfig> {
-        self.window_configs.clone()
-    }
-
-    /// 添加新窗口
-    pub fn add_window(&mut self, label: String, title: String, url: String) {
-        // 将当前激活窗口更新为后台状态
-        if let Some(active_label) = &self.active_window {
-            // 保存为前一个激活窗口
-            self.previous_active_window = Some(active_label.clone());
-
-            if let Some(active_window) = self.windows.get_mut(active_label) {
-                active_window.status = WindowStatus::Background;
-            }
-        }
-
-        // 创建新窗口信息
-        let window_info = WindowInfo {
-            label: label.clone(),
-            title,
-            url,
-            status: WindowStatus::Foreground,
-            loaded: false,
-            position: None,
-        };
-
-        self.windows.insert(label.clone(), window_info);
-        self.active_window = Some(label);
-    }
-
-    /// 切换到指定窗口
-    pub fn switch_to_window(&mut self, label: &str) -> bool {
-        if !self.windows.contains_key(label) {
-            return false;
-        }
-
-        // 如果已经是激活状态，不做任何操作
-        if let Some(active_label) = &self.active_window {
-            if active_label == label {
-                return true;
-            }
-
-            // 保存当前激活窗口为前一个窗口
-            self.previous_active_window = Some(active_label.clone());
-
-            // 更新前一个激活窗口的状态
-            if let Some(active_window) = self.windows.get_mut(active_label) {
-                active_window.status = WindowStatus::Background;
-            }
-        }
-
-        // 更新新激活窗口的状态
-        if let Some(window) = self.windows.get_mut(label) {
-            window.status = WindowStatus::Foreground;
-            window.loaded = true;
-        }
-
-        self.active_window = Some(label.to_string());
-        true
-    }
-
-    /// 标记窗口已加载完成
-    pub fn mark_window_loaded(&mut self, label: &str) -> bool {
-        if let Some(window) = self.windows.get_mut(label) {
-            window.loaded = true;
-            return true;
-        }
-        false
-    }
-
-    /// 更新控制窗口位置
-    pub fn update_control_position(&mut self, position: WindowPosition) -> bool {
-        // 检查是否允许更新
-        if !self.can_update("control") {
-            return false;
-        }
+    /// 更新快速窗口共享位置
+    pub fn update_quick_common_position(position: WindowPosition) -> bool {
+        let mut position_state = POSITION.lock();
 
         // 检查位置是否有显著变化
-        if let Some(existing) = &self.control_position {
-            if (existing.x - position.x).abs() < 1.0
-                && (existing.y - position.y).abs() < 1.0
-                && (existing.width - position.width).abs() < 1.0
-                && (existing.height - position.height).abs() < 1.0
-            {
-                self.finish_update();
+        if let Some(existing) = &position_state.quick_common_position {
+            if is_position_similar(existing, &position) {
+                debug!("快速窗口位置变化不显著，忽略更新");
                 return false;
             }
         }
 
-        // 更新控制窗口位置
-        self.control_position = Some(position);
-        self.finish_update();
+        // 更新共享位置
+        debug!("更新快速窗口共享位置: {:?}", position);
+        position_state.quick_common_position = Some(position);
         true
     }
 
-    /// 更新窗口位置
-    pub fn update_window_position(&mut self, label: &str, position: WindowPosition) -> bool {
-        // 检查是否允许更新
-        if !self.can_update(label) {
+    /// 获取特定窗口的信息
+    pub fn get_window_info(label: &str) -> Option<WindowInfo> {
+        let windows_store = WINDOWS.lock();
+        windows_store.windows.get(label).cloned()
+    }
+
+    /// 获取当前激活窗口的信息
+    pub fn get_active_window() -> Option<WindowInfo> {
+        let active_state = ACTIVE.lock();
+        let label = active_state.active_window.as_ref()?.clone();
+
+        // 释放第一个锁再获取第二个锁，避免死锁
+        drop(active_state);
+
+        let windows_store = WINDOWS.lock();
+        windows_store.windows.get(&label).cloned()
+    }
+
+    /// 获取前一个激活窗口的信息
+    pub fn get_previous_active_window() -> Option<WindowInfo> {
+        let active_state = ACTIVE.lock();
+        let label = active_state.previous_active_window.as_ref()?.clone();
+
+        // 释放第一个锁再获取第二个锁，避免死锁
+        drop(active_state);
+
+        let windows_store = WINDOWS.lock();
+        windows_store.windows.get(&label).cloned()
+    }
+
+    /// 设置窗口配置列表
+    /// 将配置转换为WindowInfo并保存到windows哈希表中
+    pub fn set_window_configs(configs: Vec<WindowConfig>) {
+        let mut windows_store = WINDOWS.lock();
+        let mut active_state = ACTIVE.lock();
+
+        // 跟踪更新的窗口标签
+        let mut updated_labels = Vec::with_capacity(configs.len());
+
+        // 为每个配置创建一个WindowInfo
+        for config in configs.iter() {
+            let label = utils::generate_window_label(&config.url, &config.title);
+            updated_labels.push(label.clone());
+
+            // 如果窗口已存在，保留其状态和位置信息
+            let window_info = if let Some(existing) = windows_store.windows.get(&label) {
+                WindowInfo {
+                    label: label.clone(),
+                    title: config.title.clone(),
+                    url: config.url.clone(),
+                    status: existing.status.clone(),
+                    loaded: existing.loaded,
+                    position: existing.position,
+                    icon: config.icon.clone(),
+                    shortcut: config.shortcut.clone(),
+                    proxy_id: config.proxy_id,
+                }
+            } else {
+                // 创建新的WindowInfo
+                WindowInfo {
+                    label: label.clone(),
+                    title: config.title.clone(),
+                    url: config.url.clone(),
+                    status: WindowStatus::Background,
+                    loaded: false,
+                    position: None,
+                    icon: config.icon.clone(),
+                    shortcut: config.shortcut.clone(),
+                    proxy_id: config.proxy_id,
+                }
+            };
+
+            // 保存到哈希表
+            windows_store.windows.insert(label, window_info);
+        }
+
+        // 确保active_window指向有效窗口
+        if let Some(active_label) = &active_state.active_window {
+            if !windows_store.windows.contains_key(active_label) {
+                // 如果当前激活窗口不存在，设置第一个窗口为激活
+                active_state.active_window = updated_labels
+                    .first()
+                    .cloned()
+                    .or_else(|| windows_store.windows.keys().next().cloned());
+
+                debug!("激活窗口不存在，重置为: {:?}", active_state.active_window);
+            }
+        } else if !windows_store.windows.is_empty() {
+            // 如果没有激活窗口但有窗口，设置第一个为激活
+            active_state.active_window = updated_labels
+                .first()
+                .cloned()
+                .or_else(|| windows_store.windows.keys().next().cloned());
+
+            debug!("设置初始激活窗口: {:?}", active_state.active_window);
+        }
+    }
+
+    /// 切换到指定窗口
+    pub fn switch_to_window(label: &str) -> bool {
+        let mut windows_store = WINDOWS.lock();
+
+        if !windows_store.windows.contains_key(label) {
+            warn!("尝试切换到不存在的窗口: {}", label);
             return false;
         }
 
-        // 检查位置变化是否显著
-        if let Some(window) = self.windows.get_mut(label) {
-            if let Some(existing) = &window.position {
-                if (existing.x - position.x).abs() < 1.0
-                    && (existing.y - position.y).abs() < 1.0
-                    && (existing.width - position.width).abs() < 1.0
-                    && (existing.height - position.height).abs() < 1.0
-                {
-                    self.finish_update();
-                    return false;
-                }
+        let mut active_state = ACTIVE.lock();
+
+        // 如果已经是激活状态，不做任何操作
+        if let Some(active_label) = &active_state.active_window {
+            if active_label == label {
+                debug!("窗口已经是激活状态: {}", label);
+                return true;
             }
 
-            // 更新位置信息
-            window.position = Some(position);
-            self.finish_update();
-            return true;
+            // 克隆当前激活窗口标签，避免同时借用
+            let active_label_clone = active_label.clone();
+
+            // 保存当前激活窗口为前一个窗口
+            active_state.previous_active_window = Some(active_label_clone.clone());
+
+            // 更新前一个激活窗口的状态
+            if let Some(active_window) = windows_store.windows.get_mut(&active_label_clone) {
+                active_window.status = WindowStatus::Background;
+                debug!("将窗口设置为后台: {}", active_label_clone);
+            }
         }
 
-        self.finish_update();
+        // 更新新激活窗口的状态
+        if let Some(window) = windows_store.windows.get_mut(label) {
+            window.status = WindowStatus::Foreground;
+            window.loaded = true;
+            debug!("将窗口设置为前台: {}", label);
+        }
+
+        active_state.active_window = Some(label.to_string());
+        info!("切换到窗口: {}", label);
+        true
+    }
+
+    /// 标记窗口已加载完成
+    pub fn mark_window_loaded(label: &str) -> bool {
+        let mut windows_store = WINDOWS.lock();
+
+        if let Some(window) = windows_store.windows.get_mut(label) {
+            if !window.loaded {
+                window.loaded = true;
+                debug!("标记窗口已加载: {}", label);
+                return true;
+            }
+        } else {
+            warn!("尝试标记不存在的窗口为已加载: {}", label);
+        }
         false
     }
 
-    /// 获取控制窗口位置
-    pub fn get_control_position(&self) -> Option<WindowPosition> {
-        self.control_position
+    /// 更新窗口位置
+    pub fn update_window_manager_position(label: &str, position: WindowPosition) -> bool {
+        // 获取窗口存储的锁
+        let mut windows_store = WINDOWS.lock();
+
+        // 检查窗口是否存在
+        if !windows_store.windows.contains_key(label) {
+            warn!("尝试更新不存在的窗口位置: {}", label);
+            return false;
+        }
+
+        let window = windows_store.windows.get_mut(label).unwrap();
+
+        // 检查位置变化是否显著
+        if let Some(existing) = &window.position {
+            if is_position_similar(existing, &position) {
+                return false;
+            }
+        }
+
+        // 判断是否为快速窗口 (非控制窗口)
+        let is_quick_window = label != "control";
+
+        // 更新位置信息
+        debug!("更新窗口位置: {} => {:?}", label, position);
+        window.position = Some(position.clone());
+
+        // 临时释放锁以避免可能的死锁
+        drop(windows_store);
+
+        // 如果是快速窗口，同步更新共享位置
+        if is_quick_window {
+            WindowManager::update_quick_common_position(position);
+        }
+
+        true
     }
 
     /// 检查是否允许窗口进行更新
-    pub fn can_update(&mut self, label: &str) -> bool {
-        let current_time = std::time::Instant::now();
+    pub fn can_update(label: &str) -> bool {
+        let mut update_state = UPDATE.lock();
+        let current_time = Instant::now();
+        let elapsed = current_time.duration_since(update_state.last_update_time);
+        let lock_duration = Duration::from_millis(update_state.update_lock_duration);
 
         // 如果锁定时间已过或没有正在更新的窗口，则可以更新
-        if !self.is_updating
-            || current_time
-                .duration_since(self.last_update_time)
-                .as_millis()
-                > self.update_lock_duration as u128
-        {
+        if !update_state.is_updating || elapsed > lock_duration {
             // 重置更新状态
-            self.is_updating = true;
-            self.updating_source = Some(label.to_string());
-            self.last_update_time = current_time;
+            update_state.is_updating = true;
+            update_state.updating_source = Some(label.to_string());
+            update_state.last_update_time = current_time;
+            debug!("允许窗口更新: {}", label);
             return true;
         }
 
         // 如果是同一窗口继续更新，允许更新
-        if let Some(source) = &self.updating_source {
+        if let Some(source) = &update_state.updating_source {
             if source == label {
-                self.last_update_time = current_time;
+                update_state.last_update_time = current_time;
                 return true;
             }
         }
 
-        // 其他情况不允许更新
+        debug!(
+            "拒绝窗口更新请求: {}, 当前更新窗口: {:?}",
+            label, update_state.updating_source
+        );
         false
     }
 
-    /// 完成更新
-    pub fn finish_update(&mut self) {
-        // 不立即释放锁定，让锁定时间到期自动释放
+    /// 清除当前激活窗口状态
+    pub fn clear_active_window() {
+        let mut active_state = ACTIVE.lock();
+
+        // 将当前激活窗口保存为前一个激活窗口
+        if let Some(active_label) = &active_state.active_window {
+            let label_clone = active_label.clone();
+            active_state.previous_active_window = Some(label_clone.clone());
+            debug!("设置前一个激活窗口: {}", label_clone);
+        }
+
+        // 清除当前激活窗口
+        active_state.active_window = None;
+        info!("清除当前激活窗口");
     }
-}
-
-/// 初始化窗口管理器
-pub fn init_window_manager<R: tauri::Runtime>(
-    app: &AppHandle<R>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    // 创建窗口管理器实例
-    let window_manager = WindowManager::new();
-    let window_manager_state = super::models::WindowManagerState(std::sync::Arc::new(
-        std::sync::Mutex::new(window_manager),
-    ));
-
-    // 注册为应用状态
-    app.manage(window_manager_state);
-
-    Ok(())
 }

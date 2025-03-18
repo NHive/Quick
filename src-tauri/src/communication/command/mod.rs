@@ -1,18 +1,21 @@
 // file_path: src/communication/command/mod.rs
+mod setting;
 mod setup;
 mod window;
+mod window_setup;
 
 use tauri::generate_handler;
 
+use setting::*;
 use setup::*;
 use window::*;
+use window_setup::*;
 
 pub fn register_commands<R: tauri::Runtime>() -> impl Fn(tauri::Builder<R>) -> tauri::Builder<R> {
     move |app_builder| {
         app_builder.invoke_handler(generate_handler![
-            cmd_create_window,
             open_setting_window,
-            cmd_configure_windows,
+            cmd_load_configure_windows,
             cmd_switch_to_window,
             cmd_get_all_windows,
             cmd_get_active_window,
@@ -21,6 +24,18 @@ pub fn register_commands<R: tauri::Runtime>() -> impl Fn(tauri::Builder<R>) -> t
             get_setup,
             set_setup,
             init_setup,
+            cmd_clear_cache,
+            get_window_pin,
+            set_window_pin,
+            cmd_hide_control_window,
+            cmd_add_window,
+            cmd_update_window,
+            cmd_delete_window,
+            cmd_create_proxy,
+            cmd_delete_proxy,
+            cmd_update_proxy,
+            cmd_get_setting_proxy_configs,
+            cmd_get_setting_window_configs,
         ])
     }
 }

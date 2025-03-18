@@ -2,4 +2,3 @@
 #[cfg(debug_assertions)]
 pub mod api;
 pub mod command;
-pub mod events;

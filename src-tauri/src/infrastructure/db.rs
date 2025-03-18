@@ -90,7 +90,6 @@ impl DB {
     async fn get_or_create_connection(app_path: &AppPath) -> Result<DatabaseConnection> {
         let mut conn_guard = DB_CONN.write().await;
         if conn_guard.is_none() {
-            let db_path = app_path.base_path.join("store.sqlite");
             let db_url = format!(
                 "sqlite://{}/store.sqlite?mode=rwc",
                 app_path.base_path.to_string_lossy()
@@ -153,7 +152,7 @@ impl DB {
     }
 
     /// 删除数据库文件
-    pub fn remove_database(app_path: &AppPath) -> Result<()> {
+    pub fn _remove_database(app_path: &AppPath) -> Result<()> {
         // 删除主数据库文件
         let db_path = app_path.base_path.join("store.sqlite");
         if db_path.exists() {

@@ -27,7 +27,7 @@ class request {
     // 判断是否是绝对路径
     const isAbsoluteURLReg = /^([a-z][a-z\d+-.]*:)?\/\//i;
     // TODO 正式环境 域名
-    const baseUrl = import.meta.env.DEV ? 'https://newbee.dev.czbrcj.cn' : 'https://newbee.fast.czbrcj.cn'
+    const baseUrl = ""
     if (typeof url === 'string' && !isAbsoluteURLReg.test(url)) {
       const pathName = /^(\/)/.test(url) ? url.slice(1) : url
       return `${baseUrl}/${pathName}`
