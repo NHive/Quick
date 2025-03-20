@@ -26,6 +26,10 @@ export const i18n = createI18n<[MessageSchema], "zh-CN" | "en-US">({
   legacy: false,
   locale: "zh-CN",
   fallbackLocale: "en-US",
+  messages: {
+    "zh-CN": zhCN,
+    "en-US": enUS,
+  }
 }) as any;
 
 // 导出语言相关的工具函数

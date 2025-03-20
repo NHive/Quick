@@ -1,7 +1,45 @@
 <template>
   <div class="settings-container">
     <div class="head">
-      <h3 class="settings-section-title">{{ t('settings.menu.window') }}</h3>
+      <h3 class="settings-section-title">
+        {{ t('settings.menu.defaultWindow') }}
+      </h3>
+    </div>
+    <!-- 默认窗口行为设置 -->
+    <div class="settings-section">
+      <div class="settings-options">
+        <div class="setting-item">
+          <div class="setting-label">{{ t('communal.hotkey') }}</div>
+          <div class="hotkey-control">
+            <a-input
+              v-model:value="globalHotkey"
+              @focus="handleFocusInput('global', '')"
+              @keydown.prevent="captureShortcut"
+            ></a-input>
+            <div v-if="globalHotkey" class="shortcut-preview">
+              <span
+                class="key"
+                v-for="item in formatShortcut(globalHotkey)"
+                :key="item"
+                >{{ item }}</span
+              >
+            </div>
+          </div>
+        </div>
+        <div class="setting-item">
+          <div class="setting-label">{{ t('communal.behavior') }}</div>
+          <a-select
+            v-model:value="openWinRule"
+            :options="openWinOptions"
+            @change="setOpenWinRule"
+          ></a-select>
+        </div>
+      </div>
+    </div>
+    <div class="head">
+      <h3 class="settings-section-title">
+        {{ t('settings.menu.customWindow') }}
+      </h3>
       <a-button class="addBtn" @click="openModal()">{{
         t('communal.add')
       }}</a-button>
@@ -16,7 +54,7 @@
         </div>
         <div class="hotkey-box" v-for="(item, index) in urlData">
           <div class="hotkey-item urlItem">{{ item.title }}</div>
-          <div class="hotkey-item">{{ formatShortcut(item) }}</div>
+          <div class="hotkey-item">{{ item.title }}</div>
           <div class="hotkey-item operate">
             <EditOutlined class="operate-icon" @click="openModal(item.id)" />
             <MoreOutlined
@@ -32,6 +70,7 @@
   <a-modal
     :open="showModal"
     :title="modalTitle"
+    style="top: 30px"
     @cancel="closeModal"
     @ok="onSubmit"
   >
@@ -74,16 +113,31 @@
           v-model:value="formState.title"
           :placeholder="t('tips.inputTitle')"
         ></a-input>
+        <div class="title-tips">{{ t('tips.titleHelp') }}</div>
       </a-form-item>
-      <a-form-item name="hotkey" :label="t('communal.hotkey')">
+      <a-form-item
+        name="hotkey"
+        :label="t('communal.hotkey')"
+        class="hotkey-control"
+      >
         <a-input
-          v-model:value="formState.hotkey"
+          v-model:value="formState.shortcut"
           :placeholder="t('tips.inputHotkey')"
+          @focus="handleFocusInput('win', '')"
+          @keydown.prevent="captureShortcut"
         ></a-input>
+        <div v-if="formState.shortcut" class="shortcut-preview">
+          <span
+            class="key"
+            v-for="item in formatShortcut(formState.shortcut)"
+            :key="item"
+            >{{ item }}</span
+          >
+        </div>
       </a-form-item>
-      <a-form-item name="proxyRule" :label="t('communal.proxyRule')">
+      <a-form-item name="proxyId" :label="t('communal.proxyRule')">
         <a-select
-          v-model:value="formState.proxyRule"
+          v-model:value="formState.proxyId"
           :options="proxyOptions"
         ></a-select>
       </a-form-item>
@@ -100,79 +154,98 @@
 import { ref, onMounted, onBeforeUnmount, createVNode } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import {
-  FormItem,
   message,
   theme as antdTheme,
   Modal,
   type FormInstance,
+  type SelectProps,
 } from 'ant-design-vue';
 import {
   MoreOutlined,
   EditOutlined,
   ExclamationCircleOutlined,
-  QuestionCircleOutlined,
 } from '@ant-design/icons-vue';
-// import { platform } from "@tauri-apps/plugin-os"
 import { useI18n } from 'vue-i18n';
-import { emit } from '@tauri-apps/api/event';
-import { getLocalShortcut } from '@/utils/init';
-import { Storage, type ShowUrlsType, type EditUrlsType } from '@/utils/storage';
+import { Storage, type UrlsType } from '@/utils/storage';
 import { Menu, type MenuItemOptions } from '@tauri-apps/api/menu';
 
 const { t } = useI18n();
 
-const initFormState: EditUrlsType = {
+const initFormState: UrlsType = {
   id: 0,
   title: '',
   isDefault: false,
   url: '',
   icon: '',
-  hotkey: '',
-  proxyRule: 0,
+  shortcut: '',
+  proxyId: 0,
 };
-
 const initProxyState = [{ value: 0, label: t('settings.basic.unUsedProxy') }];
-
-const urlData = ref<ShowUrlsType[]>(); // 当前编辑的窗口链接数组
-const isMacOS = ref(false); // 添加一个响应式变量来存储当前操作系统
+const openWinOptions = ref<SelectProps['options']>([
+  { value: 'lastTime', label: t('settings.lastTimeWin') },
+  { value: 'defaultUrl', label: t('settings.defaultUrl') },
+]);
 // antd-定制主题
 const { token } = antdTheme.useToken();
-const showModal = ref(false);
-const modalTitle = ref('');
-const formRef = ref<FormInstance>();
-// 表单
-const formState = ref<EditUrlsType>(initFormState);
-const proxyOptions = ref<Record<string, any>>(initProxyState);
 
+const globalHotkey = ref(''); // 全局快捷键——打开窗口
+const openWinRule = ref('lastTime'); // 打开窗口的默认规则：打开上次窗口｜打开默认窗口
+const defaultUrl = ref(''); // 当前默认窗口
+const urlData = ref<UrlsType[]>(); // 当前编辑的窗口链接数组
+const isMacOS = ref(false); // 添加一个响应式变量来存储当前操作系统
+const showModal = ref(false); // 打开弹框
+const modalTitle = ref(''); // 弹框标题
+const formRef = ref<FormInstance>(); // 表单Ref
+const formState = ref<UrlsType>(initFormState); // 表单State
+const proxyOptions = ref<Record<string, any>>(initProxyState); // 代理规则选项
+
+// TODO loading
 // 获取数据
 const initData = async () => {
+  getWinConfig();
+  getUrlData();
+  getProxyData();
+};
+// 获取代理规则选项数据
+const getProxyData = async () => {
+  const proxyData: Array<any> = await invoke('cmd_get_setting_proxy_configs');
+  console.log('proxy1', proxyData);
+  proxyOptions.value = [...initProxyState, ...proxyData];
+  // TODO 代理规则选项数据格式化
+};
+// 获取窗口链接数据
+const getUrlData = async () => {
   // TODO 窗口数据
-  urlData.value = [
-    {
-      id: 1,
-      title: 'ds',
-      icon: '',
-      url: 'https://www.deepseek.com/',
-      isDefault: false,
-      winHotkey: 'alt+c',
-      macHotkey: 'option+c',
-      proxyRule: 0,
-    },
-  ];
-  //  await Storage.get('urls', [
+  // urlData.value = [
   //   {
   //     id: 1,
+  //     title: 'ds',
+  //     icon: '',
   //     url: 'https://www.deepseek.com/',
+  //     isDefault: false,
   //     winHotkey: 'alt+c',
   //     macHotkey: 'option+c',
+  //     proxyId: 0,
   //   },
-  // ]);
+  // ];
+  // 获取所有窗口配置
+  let data: Array<any> = await invoke('cmd_get_setting_window_configs');
+  // 默认值处理；若窗口配置无值，则添加默认值
+  if (!data || !Array.from(data).length) {
+    await invoke('cmd_add_window', {
+      title: 'deepseek',
+      url: 'https://www.deepseek.com/',
+    });
+    // 更新数据
+    data = await invoke('cmd_get_setting_window_configs');
+  }
+  urlData.value = data;
 };
-const initProxyData = async () => {
-  const proxyData = await Storage.get('proxyConfig', []);
-  proxyOptions.value = [...initProxyState, ...proxyData];
-  console.log('initS1', urlData.value);
-  // TODO 代理规则选项数据
+// 获取窗口默认配置
+const getWinConfig = async () => {
+  // TODO 更新接口
+  globalHotkey.value = await Storage.get('globalHotkey', 'ControlLeft+C');
+  openWinRule.value = await Storage.get('openWinRule', 'lastTime');
 };
 
 // 打开弹框
@@ -182,20 +255,16 @@ const openModal = (editId?: number) => {
     ? `${t('communal.editWin')}`
     : `${t('communal.addWin')}`;
   if (editId) {
-    // 数据筛选&数据转换
-    const data: EditUrlsType[] | undefined = urlData.value
-      ?.filter((item: ShowUrlsType) => item.id === editId)
-      .map((mapItem: ShowUrlsType) => ({
-        id: mapItem.id,
-        url: mapItem.url,
-        title: mapItem.title,
-        icon: mapItem.icon,
-        isDefault: mapItem.isDefault,
-        proxyRule: mapItem.proxyRule,
-        hotkey: mapItem.macHotkey,
+    // TODO 数据筛选&数据转换
+    const data: UrlsType[] | undefined = urlData.value
+      ?.filter((item: UrlsType) => item.id === editId)
+      .map((mapItem: UrlsType) => ({
+        ...mapItem,
+        isDefault: false,
       }));
     if (data && Object.keys(data).length) {
       formState.value = toRaw(data[0]);
+      // editShortcut.value = formState.value.shortcut;
     } else {
       message.error(t('tips.dataError'));
     }
@@ -213,57 +282,56 @@ const onSubmit = () => {
   formRef.value
     ?.validate()
     .then((res) => {
-      let oldUrl = urlData.value
-        ? JSON.parse(JSON.stringify(urlData.value))
-        : [];
       const params = { ...formState.value };
-      // 新增数据-生成id
-      const idArray = urlData.value?.map((item) => item.id) ?? [];
-      const maxId = Math.max(...idArray);
-      if (!params.id) {
-        params.id = maxId + 1;
-      }
-      // TODO 处理默认title和icon
+      // 处理默认title
       const url = new URL(formState.value.url);
       if (!params.title) {
         params.title = url.hostname;
       }
-      params.icon = `${url.origin}/favicon.ico`;
-      // TODO 处理isDefault
-      if (params.isDefault) {
-        // 清除旧默认url
-        oldUrl?.forEach((item: EditUrlsType) => {
-          item.isDefault = false;
+      if (!params.proxyId) {
+        delete params.proxyId;
+      }
+      // TODO 更新数据
+      if (!params.id) {
+        invoke('cmd_add_window', params).then(() => {
+          updateUrlSuccess();
+        });
+      } else {
+        invoke('cmd_update_window', params).then(() => {
+          updateUrlSuccess();
         });
       }
-      // TODO处理不同平台快捷键、快捷键逻辑
-      // TODO 更新数据
-      const newUrl = oldUrl.push(params);
-      Storage.set('hotkeys', newUrl);
+
       console.log('ass', url, formState.value);
-      closeModal();
     })
     .catch((error) => {
       console.log('updateHotkeys-Error', error);
     });
 };
 
-// TODO 删除窗口链接
+const updateUrlSuccess = () => {
+  message.success(`${t('tips.operateSuccess')}!`);
+  closeModal();
+  getUrlData();
+  // TODO 更新setup的默认链接值
+};
+
+const updateUrlFail = () => {
+  // TODO 错误提示
+};
+
+// 删除窗口链接
 const deleteUrl = async (id: number) => {
-  const index = urlData.value?.findIndex((item) => item.id === id);
-  if (index && !urlData.value?.[index].isDefault) {
-    urlData.value?.splice(index, 1);
-    try {
-      await Storage.set('hotkey', urlData.value);
-      message.success(`${t('tips.deleteSuccess')}!`);
-    } catch (error) {
-      // 更改失败，提示&还原数据
-      message.error(`${t('tips.deleteFail')}!`);
-      initData();
-    }
+  try {
+    await invoke('cmd_delete_window', { id });
+    message.success(`${t('tips.deleteSuccess')}!`);
+  } catch (error) {
+    // 更改失败，提示&还原数据
+    message.error(`${t('tips.deleteFail')}!`);
+    getUrlData();
   }
 };
-// TODO 删除窗口链接二次确认
+// 删除窗口链接二次确认
 const handleDelete = (id: number) => {
   Modal.confirm({
     title: `${t('tips.confimrDelete')}?`,
@@ -276,20 +344,17 @@ const handleDelete = (id: number) => {
 
 // TODO 设置默认窗口
 const setDefaulrUrl = async (id: number) => {
-  urlData.value?.forEach((item) => {
-    if (item.id === id) {
-      item.isDefault = true;
-    } else {
-      item.isDefault = false;
-    }
-  });
-  try {
-    await Storage.set('urls', urlData.value);
-    message.success(`${t('tips.updateSuccess')}!`);
-  } catch (error) {
-    // 更改失败，提示&还原数据
-    message.error(`${t('tips.updateFail')}!`);
-    initData();
+  const index = urlData.value?.findIndex((item) => item.id === id);
+  if (index !== undefined) {
+    invoke('', { ...urlData.value?.[index], isDefault: true })
+      .then(() => {
+        message.success(`${t('tips.updateSuccess')}!`);
+      })
+      .catch(() => {
+        // 更改失败，提示&还原数据
+        message.error(`${t('tips.updateFail')}!`);
+        getUrlData();
+      });
   }
 };
 
@@ -303,13 +368,169 @@ const openMenu = async (id: number) => {
   menu.popup();
 };
 
+// 更改默认窗口打开链接行为
+const setOpenWinRule = (value: string) => {
+  Storage.set('openWinRule', value);
+};
+
 /**
  * 快捷键设置
+ * 设置全局快捷键逻辑：设置完成后——>主动调接口更新配置
+ * url快捷键设置流程：设置完成后，点击表单提交——>调接口更新数据
  */
+const isFirstFocus = ref(false);
+const lastShortcut = ref('');
+const keyPressTimeout = ref();
+const isFetching = ref(false); // 设置全局快捷键时，正在请求接口中
+//  TODO 1、快捷键设置
+// 重置lastShortcut，更新快捷键input显示
+const resetShortcut = (type: 'global' | 'win', newVal: string) => {
+  if (type === 'global') {
+    lastShortcut.value = globalHotkey.value;
+    globalHotkey.value = newVal;
+  } else {
+    lastShortcut.value = formState.value.shortcut;
+    formState.value.shortcut = newVal;
+  }
+};
+const handleFocusInput = (type: 'global' | 'win', newVal: string) => {
+  try {
+    if (isFirstFocus.value) {
+      resetShortcut(type, newVal);
+    }
+    isFirstFocus.value = true;
+  } catch (error) {}
+};
+// 监听键盘输入，设置快捷键
+const captureShortcut = (
+  event: KeyboardEvent,
+  type: 'global' | 'win'
+): void => {
+  // 阻止默认行为和事件冒泡
+  event.preventDefault();
+  event.stopPropagation();
+
+  // 如果是重复事件，直接返回
+  if (event.repeat) {
+    return;
+  }
+
+  // 清除之前的超时
+  if (keyPressTimeout.value) {
+    clearTimeout(keyPressTimeout.value);
+  }
+
+  // 在输入时禁用输入法
+  const input = event.target as HTMLInputElement;
+  input.blur();
+  input.focus();
+
+  const keys: string[] = [];
+  if (event.ctrlKey) keys.push('ctrl');
+  if (event.altKey) keys.push('alt');
+  if (event.shiftKey) keys.push('shift');
+  if (event.metaKey) keys.push('command');
+  console.log('keyboard', keys, event, event.code);
+
+  const keyCode = event.code;
+  const isModifierKey = [
+    'ControlLeft',
+    'AltLeft',
+    'ShiftLeft',
+    'MetaLeft',
+    'ControlRight',
+    'AltRight',
+    'ShiftRight',
+    'MetaRight',
+  ].includes(keyCode);
+
+  // 如果是修饰键，只更新显示，不触发完成事件
+  if (isModifierKey) {
+    if (type === 'global') {
+      globalHotkey.value = keys.join('+');
+    } else {
+      formState.value.shortcut = keys.join('+');
+    }
+    return;
+  }
+  // 使用一个映射来转换键码
+  const keyMap: { [key: string]: string } = {
+    KeyA: 'a',
+    KeyB: 'b',
+    KeyC: 'c',
+    Digit1: '1',
+    Digit2: '2',
+    Minus: '-',
+    Equal: '=',
+    BracketLeft: '[',
+    BracketRight: ']',
+    Semicolon: ';',
+    Quote: "'",
+    Backslash: '\\',
+    Comma: ',',
+    Period: '.',
+    Slash: '/',
+    Space: 'space',
+    Enter: 'enter',
+    Backspace: 'backspace',
+    Tab: 'tab',
+    Escape: 'esc',
+    ArrowUp: '↑',
+    ArrowDown: '↓',
+    ArrowLeft: '←',
+    ArrowRight: '→',
+  };
+
+  if (keyCode.startsWith('Key')) {
+    keys.push(keyCode.slice(3).toLowerCase());
+  } else if (keyCode.startsWith('Digit')) {
+    keys.push(keyCode.slice(5));
+  } else {
+    keys.push(keyMap[keyCode] || keyCode.toLowerCase());
+  }
+  const data = keys.join('+');
+  if (type === 'global') {
+    globalHotkey.value = data;
+  } else {
+    formState.value.shortcut = data;
+  }
+
+  // 延长完成事件的等待时间
+  keyPressTimeout.value = setTimeout(() => {
+    handleShortcutComplete(type, data);
+  }, 350);
+};
+
+const handleShortcutComplete = async (
+  type: 'global' | 'win',
+  shortcut: string
+): Promise<void> => {
+  try {
+    if (type === 'global') {
+      // TODO 请求接口更新全局快捷键，增加loading效果
+      // 更新快捷键成功，显示最新值
+      await Storage.set('globalHotkey', shortcut);
+      // getWinConfig()
+    }
+  } catch (error) {
+    console.log('handleShortcutComplete-Error', error);
+    message.error(t('settings.shortcuts.saveError'));
+  } finally {
+    inputBlur();
+    isFirstFocus.value = true;
+  }
+};
+
+// 触发输入框失焦
+const inputBlur = () => {
+  const { activeElement } = document;
+  if (activeElement instanceof HTMLInputElement) {
+    activeElement.blur();
+  }
+};
 
 // 格式化快捷键显示
-const formatShortcut = (item: ShowUrlsType): string[] => {
-  const shortcut = isMacOS.value ? item.macHotkey : item.winHotkey;
+const formatShortcut = (shortcut: string): string[] => {
   const result = shortcut.split('+').map((key: string) => {
     const macKeyMap: Record<string, string> = {
       ctrl: '⌃',
@@ -349,11 +570,12 @@ const formatShortcut = (item: ShowUrlsType): string[] => {
   return result;
 };
 
+// TODO 2、默认窗口行为
+
 onMounted(async () => {
   isMacOS.value = await Storage.get('isMacOS', false);
   // 初始化数据
   initData();
-  initProxyData();
 });
 
 // 在组件卸载时清理
@@ -397,16 +619,12 @@ onBeforeUnmount(() => {});
   margin-bottom: 0;
 
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-
-  // :root[data-theme='dark'] & {
-  //   color: #ffffff;
-  // }
 }
 
 .settings-options {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   color: #1d1d1f;
 }
 
@@ -472,10 +690,6 @@ onBeforeUnmount(() => {});
   font-size: 14px;
   font-weight: 500;
   color: #1d1d1f;
-
-  :root[data-theme='dark'] & {
-    color: #f5f5f7;
-  }
 }
 
 .input-wrapper {
@@ -487,51 +701,41 @@ onBeforeUnmount(() => {});
   width: 180px;
   height: 36px;
 }
+.hotkey-control {
+  position: relative;
+  :deep(.ant-input) {
+    color: transparent !important;
+    caret-color: transparent;
+    line-height: 30px;
 
-:deep(.ant-input) {
-  // color: transparent !important;
-  // caret-color: transparent;
+    &::placeholder {
+      color: #999;
+      font-size: 13px;
+    }
 
-  &::placeholder {
-    color: #999;
-    font-size: 13px;
-  }
-
-  height: 36px;
-  border-radius: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(4px);
-  transition: all 0.2s ease;
-  font-size: 14px;
-  padding: 0 12px;
-
-  &:hover {
-    border-color: #4784ec;
-    background: rgba(255, 255, 255, 0.95);
-  }
-
-  &:focus {
-    border-color: #4784ec;
-    box-shadow: 0 0 0 2px rgba(71, 132, 236, 0.2);
-    background: #ffffff;
-  }
-
-  :root[data-theme='dark'] & {
-    background: rgba(58, 58, 60, 0.8);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: #ffffff;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(4px);
+    transition: all 0.2s ease;
+    font-size: 14px;
+    padding: 0px 12px;
 
     &:hover {
       border-color: #4784ec;
-      background: rgba(58, 58, 60, 0.95);
+      background: rgba(255, 255, 255, 0.95);
     }
 
     &:focus {
-      background: #3a3a3c;
       border-color: #4784ec;
       box-shadow: 0 0 0 2px rgba(71, 132, 236, 0.2);
+      background: #ffffff;
     }
+  }
+  .hotkey-value {
+    background: #076aecf7;
+    border: 1px solid #076aecf7;
   }
 }
 
@@ -606,6 +810,10 @@ onBeforeUnmount(() => {});
       }
     }
   }
+}
+.title-tips {
+  font-size: 12px;
+  color: #bebcbc;
 }
 
 // 添加动画效果

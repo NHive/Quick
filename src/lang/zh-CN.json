@@ -8,7 +8,9 @@
       "about": "关于软件",
       "devices": "设备管理",
       "window": "窗口设置",
-      "network": "网络设置"
+      "network": "网络设置",
+      "defaultWindow": "默认窗口设置",
+      "customWindow": "自定义窗口设置"
     },
     "basic": {
       "title": "基本设置",
@@ -166,7 +168,9 @@
       "cancel": "取消"
     },
     "cancel": "取消",
-    "confirm": "确认"
+    "confirm": "确认",
+    "lastTimeWin": "上次打开窗口",
+    "defaultUrl": "默认链接"
   },
   "clipboard": {
     "search": {
@@ -236,9 +240,10 @@
     "inputUrl": "请输入窗口链接",
     "inputHotkey": "请输入快捷键",
     "inputTitle": "请输入标题",
-    "titleHelp": "未输入标题时使用网站默认标题",
+    "titleHelp": "未输入标题时,使用网站默认标题",
     "urlFormat": "请输入正确的链接",
-    "dataError": "数据出错,请重试"
+    "dataError": "数据出错,请重试",
+    "operateSuccess": "操作成功"
   },
   "verify": {
     "email": "绑定邮箱",
@@ -311,6 +316,7 @@
     "proxyRule": "代理规则",
     "add": "新增",
     "addWin": "新增窗口链接",
-    "editWin": "编辑窗口链接"
+    "editWin": "编辑窗口链接",
+    "behavior": "窗口行为"
   }
 }
