@@ -8,7 +8,10 @@
       "about": "About",
       "devices": "Devices",
       "window": "Window settings",
-      "network": "Network settings"
+      "network": "Network settings",
+      "defaultWindow": "Default window settings",
+      "customWindow": "Customize window settings",
+      "proxy": "Proxy Rule Settings"
     },
     "basic": {
       "title": "Basic Settings",
@@ -34,7 +37,9 @@
       "customizeProxy": "Manual settings",
       "userName": "username",
       "pwd": "password",
-      "proxyAddress": "Proxy address"
+      "proxyAddress": "Proxy address",
+      "proxyType": "Agent Type",
+      "port": "port"
     },
     "fileSync": {
       "title": "File Sync Settings",
@@ -166,7 +171,9 @@
       "cancel": "Cancel"
     },
     "cancel": "Cancel",
-    "confirm": "confirm"
+    "confirm": "confirm",
+    "lastTimeWin": "Last time opened",
+    "defaultUrl": "Default link"
   },
   "clipboard": {
     "search": {
@@ -235,10 +242,16 @@
     "inputHotkey": "Please enter shortcut keys",
     "inputTitle": "Please enter a title",
     "inputUrl": "Please enter the window link",
-    "titleHelp": "Use the default title when the title is not entered",
+    "titleHelp": "When no title is entered, use the default title of the website",
     "updateFail": "Update failed, please try again",
     "updateSuccess": "Update successfully",
-    "urlFormat": "Please enter the correct link"
+    "urlFormat": "Please enter the correct link",
+    "operateSuccess": "Operation is successful",
+    "operateFail": "Operation failed",
+    "portMax": "Maximum value {max}",
+    "portWrongFormat": "Please enter a number",
+    "hostWrongFormat": "Please enter the correct format",
+    "empty": "No data yet"
   },
   "verify": {
     "email": "Bind email",
@@ -311,6 +324,13 @@
     "addWin": "Added a new window link",
     "editWin": "Edit window link",
     "proxyRule": "Proxy rules",
-    "title": "title"
+    "title": "title",
+    "behavior": "Window behavior",
+    "addProxy": "Added proxy rules",
+    "editProxy": "Editing agent rules"
+  },
+  "placeholder": {
+    "proxyAddress": "Please enter the proxy address",
+    "port": "Please enter the port number"
   }
 }

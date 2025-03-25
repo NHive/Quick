@@ -9,7 +9,7 @@ import {
   type ShortcutEvent,
 } from "@tauri-apps/plugin-global-shortcut";
 import { useLanguage } from "../utils/i18n";
-
+import { Storage } from "./storage";
 // 获取持久化数据
 export const getLocalShortcut = async (
   key: string,
@@ -107,6 +107,9 @@ const initializeApp = async () => {
     const currentPlatform = await platform();
     const isMacOS = currentPlatform === "macos";
     const isWindows = currentPlatform === "windows";
+    Storage.set('isMacOS', isMacOS)
+    Storage.set('isWindows', isWindows)
+
   } catch (error) {
     console.error("Failed to initialize app settings:", error);
   }

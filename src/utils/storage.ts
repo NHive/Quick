@@ -68,10 +68,12 @@ export enum THEMEMODE_ENUM {
 export type ProxyType = 'unUsed' | 'auto' | 'customize'
 // 代理配置类型定义
 export interface ProxyConfigType {
-  proxyType: 'unUsed' | 'auto' | 'customize', // 不使用代理｜自动检查｜自定义设置
-  address?: string,
-  name?: string,
-  pwd?: string
+  id: number,
+  proxyType: string,
+  host: String,
+  port: number | string,
+  username?: String,
+  password?: String,
 }
 
 // 快捷键类型定义
@@ -81,56 +83,44 @@ export interface UrlsType {
   title: string,
   icon?: string,
   isDefault: boolean,
-  proxyRule?: number
-}
-export interface EditUrlsType extends UrlsType {
-  hotkey: string
-}
-
-export interface ShowUrlsType extends UrlsType {
-  winHotkey: string,
-  macHotkey: string,
+  proxyId?: number,
+  shortcut: string
+  sortOrder?: number
 }
 
 // 默认配置类型定义
 export interface DefaultConfigType {
-  theme: string, // 主题色
-  themeMode: 'auto' | 'light' | 'dark', // 主题模式：亮|暗
-  locale: 'zh-CN' | 'en-US', // 国际化
-  bootUp: boolean, // 是否开机启动
-  silentStart: boolean, // 是否静默启动
-  winLocation: 'mouseLocation' | 'lastLocation', // 主窗口位置，鼠标位置｜上次位置
-  // 代理设置
-  proxyConfig: ProxyConfigType,
-  // 快捷键设置
-  urls: Array<ShowUrlsType>
+  default: { isMacOS: boolean, isWindows: boolean },
+  customConfig: {
+    theme: string, // 主题色
+    themeMode: 'auto' | 'light' | 'dark', // 主题模式：亮|暗
+    locale: 'zh-CN' | 'en-US', // 国际化
+    bootUp: boolean, // 是否开机启动
+    silentStart: boolean, // 是否静默启动
+    winLocation: 'mouseLocation' | 'lastLocation', // 主窗口位置，鼠标位置｜上次位置
+  },
+  winConfig: {
+    globalHotkey: string, // 打开窗口的默认全局快捷键
+    openWinRule: 'lastTime' | 'defaultUrl' // 打开窗口的默认行为：打开上次窗口/打开默认窗口url
+  }
 
 }
 
 // 默认配置值
 export const defaultConfig: DefaultConfigType = {
-  theme: '', // 主题色
-  themeMode: 'light', // 主题模式：亮|暗
-  locale: 'zh-CN', // 国际化
-  bootUp: false, // 是否开机启动
-  silentStart: false, // 是否静默启动
-  winLocation: 'mouseLocation', // 主窗口位置，鼠标位置｜上次位置
-  // TODO 代理设置
-  proxyConfig: {
-    proxyType: 'auto',
-    address: '',
-    name: '',
-    pwd: ''
+  default: { isMacOS: false, isWindows: true },
+  // 通用配置
+  customConfig: {
+    theme: '', // 主题色
+    themeMode: 'light', // 主题模式：亮|暗
+    locale: 'zh-CN', // 国际化
+    bootUp: false, // 是否开机启动
+    silentStart: false, // 是否静默启动
+    winLocation: 'mouseLocation', // 主窗口位置，鼠标位置｜上次位置    
   },
-  // 窗口链接数据设置
-  urls: [{
-    id: 1,
-    title: '',
-    icon: '',
-    url: 'https://www.deepseek.com/',
-    isDefault: true,
-    winHotkey: "alt+c",
-    macHotkey: "option+c",
-    proxyRule: 0
-  }],
+  // 窗口配置
+  winConfig: {
+    globalHotkey: 'ctrl+C',
+    openWinRule: 'lastTime'
+  }
 }

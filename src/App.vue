@@ -20,6 +20,7 @@ import enUS from 'ant-design-vue/es/locale/en_US';
 import zhCN from 'ant-design-vue/es/locale/zh_CN';
 import { SETTING_STORAGE_KEYS, Storage } from './utils/storage';
 import { listen } from '@tauri-apps/api/event';
+import { invoke } from '@tauri-apps/api/core';
 
 const { locale } = useI18n({ useScope: 'global' });
 // 创建对语言变量的引用
@@ -40,10 +41,23 @@ const updateTheme = async (type: string) => {
   }
 };
 
+// 添加默认窗口链接
+const initDefaultWin = async () => {
+  let data: Array<any> = await invoke('cmd_get_setting_window_configs');
+  // 默认值处理；若窗口配置无值，则添加默认值
+  if (!data || !Array.from(data).length) {
+    await invoke('cmd_add_window', {
+      title: 'deepseek',
+      url: 'https://www.deepseek.com/',
+    });
+  }
+};
+
 onMounted(async () => {
   // 初始化项目配置
   await Storage.initStorage();
   await updateTheme('theme');
+  await initDefaultWin()
   listen('setting-changed', (event: { payload: { type: string } }) => {
     updateTheme(event.payload.type);
   });
