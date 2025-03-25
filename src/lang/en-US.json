@@ -10,7 +10,8 @@
       "window": "Window settings",
       "network": "Network settings",
       "defaultWindow": "Default window settings",
-      "customWindow": "Customize window settings"
+      "customWindow": "Customize window settings",
+      "proxy": "Proxy Rule Settings"
     },
     "basic": {
       "title": "Basic Settings",
@@ -36,7 +37,9 @@
       "customizeProxy": "Manual settings",
       "userName": "username",
       "pwd": "password",
-      "proxyAddress": "Proxy address"
+      "proxyAddress": "Proxy address",
+      "proxyType": "Agent Type",
+      "port": "port"
     },
     "fileSync": {
       "title": "File Sync Settings",
@@ -243,7 +246,12 @@
     "updateFail": "Update failed, please try again",
     "updateSuccess": "Update successfully",
     "urlFormat": "Please enter the correct link",
-    "operateSuccess": "Operation is successful"
+    "operateSuccess": "Operation is successful",
+    "operateFail": "Operation failed",
+    "portMax": "Maximum value {max}",
+    "portWrongFormat": "Please enter a number",
+    "hostWrongFormat": "Please enter the correct format",
+    "empty": "No data yet"
   },
   "verify": {
     "email": "Bind email",
@@ -317,6 +325,12 @@
     "editWin": "Edit window link",
     "proxyRule": "Proxy rules",
     "title": "title",
-    "behavior": "Window behavior"
+    "behavior": "Window behavior",
+    "addProxy": "Added proxy rules",
+    "editProxy": "Editing agent rules"
+  },
+  "placeholder": {
+    "proxyAddress": "Please enter the proxy address",
+    "port": "Please enter the port number"
   }
 }

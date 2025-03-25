@@ -264,7 +264,6 @@ const openModal = (editId?: number) => {
       }));
     if (data && Object.keys(data).length) {
       formState.value = toRaw(data[0]);
-      // editShortcut.value = formState.value.shortcut;
     } else {
       message.error(t('tips.dataError'));
     }

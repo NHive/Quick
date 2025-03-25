@@ -57,7 +57,7 @@ onMounted(async () => {
   // 初始化项目配置
   await Storage.initStorage();
   await updateTheme('theme');
-  initDefaultWin()
+  await initDefaultWin()
   listen('setting-changed', (event: { payload: { type: string } }) => {
     updateTheme(event.payload.type);
   });

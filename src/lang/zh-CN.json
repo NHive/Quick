@@ -10,7 +10,8 @@
       "window": "窗口设置",
       "network": "网络设置",
       "defaultWindow": "默认窗口设置",
-      "customWindow": "自定义窗口设置"
+      "customWindow": "自定义窗口设置",
+      "proxy": "代理规则设置"
     },
     "basic": {
       "title": "基本设置",
@@ -36,7 +37,9 @@
       "customizeProxy": "手动设置代理",
       "proxyAddress": "代理地址",
       "userName": "用户名",
-      "pwd": "密码"
+      "pwd": "密码",
+      "proxyType": "代理类型",
+      "port": "端口"
     },
     "fileSync": {
       "title": "文件同步设置",
@@ -243,7 +246,12 @@
     "titleHelp": "未输入标题时,使用网站默认标题",
     "urlFormat": "请输入正确的链接",
     "dataError": "数据出错,请重试",
-    "operateSuccess": "操作成功"
+    "operateSuccess": "操作成功",
+    "operateFail": "操作失败",
+    "portWrongFormat": "请输入数字",
+    "portMax": "最大值{max}",
+    "hostWrongFormat": "请输入正确格式",
+    "empty": "暂无数据"
   },
   "verify": {
     "email": "绑定邮箱",
@@ -317,6 +325,12 @@
     "add": "新增",
     "addWin": "新增窗口链接",
     "editWin": "编辑窗口链接",
-    "behavior": "窗口行为"
+    "behavior": "窗口行为",
+    "editProxy": "编辑代理规则",
+    "addProxy": "新增代理规则"
+  },
+  "placeholder": {
+    "proxyAddress": "请输入代理地址",
+    "port": "请输入端口号"
   }
 }

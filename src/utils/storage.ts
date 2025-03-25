@@ -68,11 +68,10 @@ export enum THEMEMODE_ENUM {
 export type ProxyType = 'unUsed' | 'auto' | 'customize'
 // 代理配置类型定义
 export interface ProxyConfigType {
-  // proxyType: 'unUsed' | 'auto' | 'customize', // 不使用代理｜自动检查｜自定义设置
   id: number,
-  proxyType: String,
+  proxyType: string,
   host: String,
-  port: number,
+  port: number | string,
   username?: String,
   password?: String,
 }
