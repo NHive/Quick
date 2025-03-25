@@ -14,7 +14,7 @@ use crate::logic::window_manager::operations::{
 // 添加日志相关的导入
 use crate::infrastructure::log::{LogQuery, TempLogger};
 
-use crate::infrastructure::setup::SetupService;
+use crate::infrastructure::setup::SETUP_SERVICE;
 use serde_json::Value;
 
 use super::AppState;
@@ -110,8 +110,15 @@ async fn switch_window(
 
 // 加载窗口配置
 #[post("/api/debug/windows/load_configs")]
-async fn configure_window_list() -> impl Responder {
-    match load_window_configs_from_db().await {
+async fn configure_window_list(app_state: web::Data<AppState>) -> impl Responder {
+    let app_handle = match app_state.app_handle.lock() {
+        Ok(handle) => handle.clone(),
+        Err(_) => {
+            return HttpResponse::InternalServerError()
+                .json(json!({"error": "Failed to lock app handle"}))
+        }
+    };
+    match load_window_configs_from_db(&app_handle).await {
         Ok(_) => HttpResponse::Ok().json(json!({"success": true})),
         Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
     }
@@ -158,22 +165,10 @@ struct SetupKeyQuery {
 
 // 获取特定配置的接口
 #[get("/api/debug/setup")]
-async fn get_setup(app_state: web::Data<AppState>, query: Query<SetupKeyQuery>) -> impl Responder {
-    let app_handle = match app_state.app_handle.lock() {
-        Ok(handle) => handle.clone(),
-        Err(_) => {
-            return HttpResponse::InternalServerError()
-                .json(json!({"error": "Failed to lock app handle"}))
-        }
-    };
-
-    match app_handle.try_state::<SetupService>() {
-        Some(setup_service) => match setup_service.get_setup_async(&query.key).await {
-            Ok(value) => HttpResponse::Ok().json(value),
-            Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
-        },
-        None => HttpResponse::InternalServerError()
-            .json(json!({"error": "Setup service not available"})),
+async fn get_setup(query: Query<SetupKeyQuery>) -> impl Responder {
+    match SETUP_SERVICE.get_setup_async(&query.key).await {
+        Ok(value) => HttpResponse::Ok().json(value),
+        Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
     }
 }
 
@@ -186,43 +181,19 @@ struct SetupRequest {
 
 // 设置配置的接口
 #[post("/api/debug/setup")]
-async fn set_setup(app_state: web::Data<AppState>, req: web::Json<SetupRequest>) -> impl Responder {
-    let app_handle = match app_state.app_handle.lock() {
-        Ok(handle) => handle.clone(),
-        Err(_) => {
-            return HttpResponse::InternalServerError()
-                .json(json!({"error": "Failed to lock app handle"}))
-        }
-    };
-
-    match app_handle.try_state::<SetupService>() {
-        Some(setup_service) => match setup_service.set_setup_async(&req.key, &req.value).await {
-            Ok(_) => HttpResponse::Ok().json(json!({"success": true})),
-            Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
-        },
-        None => HttpResponse::InternalServerError()
-            .json(json!({"error": "Setup service not available"})),
+async fn set_setup(req: web::Json<SetupRequest>) -> impl Responder {
+    match SETUP_SERVICE.set_setup_async(&req.key, &req.value).await {
+        Ok(_) => HttpResponse::Ok().json(json!({"success": true})),
+        Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
     }
 }
 
 // 获取所有配置的接口
 #[get("/api/debug/setup/all")]
-async fn get_all_setups(app_state: web::Data<AppState>) -> impl Responder {
-    let app_handle = match app_state.app_handle.lock() {
-        Ok(handle) => handle.clone(),
-        Err(_) => {
-            return HttpResponse::InternalServerError()
-                .json(json!({"error": "Failed to lock app handle"}))
-        }
-    };
-
-    match app_handle.try_state::<SetupService>() {
-        Some(setup_service) => match setup_service.get_all_setups_async().await {
-            Ok(values) => HttpResponse::Ok().json(values),
-            Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
-        },
-        None => HttpResponse::InternalServerError()
-            .json(json!({"error": "Setup service not available"})),
+async fn get_all_setups() -> impl Responder {
+    match SETUP_SERVICE.get_all_setups_async().await {
+        Ok(values) => HttpResponse::Ok().json(values),
+        Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
     }
 }
 
@@ -234,25 +205,10 @@ struct InitSetupRequest {
 
 // 初始化设置的接口
 #[post("/api/debug/setup/init")]
-async fn init_setup(
-    app_state: web::Data<AppState>,
-    req: web::Json<InitSetupRequest>,
-) -> impl Responder {
-    let app_handle = match app_state.app_handle.lock() {
-        Ok(handle) => handle.clone(),
-        Err(_) => {
-            return HttpResponse::InternalServerError()
-                .json(json!({"error": "Failed to lock app handle"}))
-        }
-    };
-
-    match app_handle.try_state::<SetupService>() {
-        Some(setup_service) => match setup_service.init_setup_async(req.defaults.clone()).await {
-            Ok(_) => HttpResponse::Ok().json(json!({"success": true})),
-            Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
-        },
-        None => HttpResponse::InternalServerError()
-            .json(json!({"error": "Setup service not available"})),
+async fn init_setup(req: web::Json<InitSetupRequest>) -> impl Responder {
+    match SETUP_SERVICE.init_setup_async(req.defaults.clone()).await {
+        Ok(_) => HttpResponse::Ok().json(json!({"success": true})),
+        Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
     }
 }
 

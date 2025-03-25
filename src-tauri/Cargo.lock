@@ -26,6 +26,7 @@ dependencies = [
  "objc_id",
  "once_cell",
  "parking_lot",
+ "paste",
  "sea-orm",
  "serde",
  "serde_derive",

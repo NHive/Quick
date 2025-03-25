@@ -1,6 +1,7 @@
 // file_path: src/communication/command/setting.rs
 use crate::infrastructure::data_access::{curd_proxies, curd_windows};
 use crate::infrastructure::db::DB;
+use serde::{Deserialize, Serialize};
 
 // 添加窗口配置
 #[tauri::command]
@@ -192,4 +193,23 @@ pub async fn cmd_update_proxy(
         Ok(_) => Ok(true),
         Err(e) => Err(e.to_string()),
     }
+}
+
+// 设置默认打开快捷键,以及打开方式
+pub async fn cmd_set_default_open_window(
+    shortcut: &str,
+    open_default: bool,
+) -> Result<bool, String> {
+    todo!()
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct DefaultOpenWindow {
+    shortcut: String,
+    open_default: bool,
+}
+
+// 获取默认打开快捷键,以及打开方式
+pub async fn cmd_get_default_open_window() -> Result<DefaultOpenWindow, String> {
+    todo!()
 }

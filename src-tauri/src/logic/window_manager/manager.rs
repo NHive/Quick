@@ -4,9 +4,12 @@ use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
+use tauri::{AppHandle, Runtime};
 
 use super::models::*;
+use super::operations::switch_to_window;
 use super::utils;
+use crate::logic::events::global_shortcut::SHORTCUT_MANAGER;
 
 // 位置比较的误差容忍度
 const POSITION_EPSILON: f64 = 1.0;
@@ -152,7 +155,7 @@ impl WindowManager {
 
     /// 设置窗口配置列表
     /// 将配置转换为WindowInfo并保存到windows哈希表中
-    pub fn set_window_configs(configs: Vec<WindowConfig>) {
+    pub fn set_window_configs<R: Runtime>(app: &AppHandle<R>, configs: Vec<WindowConfig>) {
         let mut windows_store = WINDOWS.lock();
         let mut active_state = ACTIVE.lock();
 
@@ -161,9 +164,38 @@ impl WindowManager {
 
         // 为每个配置创建一个WindowInfo
         for config in configs.iter() {
+            // 生成窗口标签
             let label = utils::generate_window_label(&config.url, &config.title);
             updated_labels.push(label.clone());
 
+            if let Some(shortcut) = &config.shortcut {
+                // 注册窗口快捷键
+                let app_handle_clone = app.clone();
+                let label_clone = label.clone();
+                log::info!("注册窗口快捷键: {} => {:?}", label, shortcut);
+                match SHORTCUT_MANAGER
+                    .write()
+                    .unwrap()
+                    .register_shortcut_from_string(&label, shortcut, &label, move |_| {
+                        let window_label = label_clone.clone();
+                        let app_handle = app_handle_clone.clone();
+                        tauri::async_runtime::spawn(async move {
+                            if let Err(e) = switch_to_window(&app_handle, &window_label).await {
+                                log::error!("切换窗口错误: {}", e);
+                            }
+                        });
+                    }) {
+                    Ok(_) => {
+                        debug!("注册窗口快捷键: {} => {:?}", label, shortcut);
+                    }
+                    Err(e) => {
+                        warn!(
+                            "注册窗口快捷键失败: {} => {:?}, 错误: {}",
+                            label, shortcut, e
+                        );
+                    }
+                }
+            }
             // 如果窗口已存在，保留其状态和位置信息
             let window_info = if let Some(existing) = windows_store.windows.get(&label) {
                 WindowInfo {

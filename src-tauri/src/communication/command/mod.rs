@@ -11,6 +11,7 @@ use setup::*;
 use window::*;
 use window_setup::*;
 
+
 pub fn register_commands<R: tauri::Runtime>() -> impl Fn(tauri::Builder<R>) -> tauri::Builder<R> {
     move |app_builder| {
         app_builder.invoke_handler(generate_handler![

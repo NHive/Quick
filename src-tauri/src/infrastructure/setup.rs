@@ -3,6 +3,7 @@ use super::entity::prelude::*;
 use super::entity::setup;
 use super::entity::setup::ActiveModel;
 
+use once_cell::sync::Lazy;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter};
 use sea_orm::{DbErr, Set};
 use serde_json::Value;
@@ -14,15 +15,11 @@ use super::datetime;
 use super::db::DB;
 use super::error::AppError;
 
+pub static SETUP_SERVICE: Lazy<SetupService> = Lazy::new(SetupService::new);
+
 #[derive(Clone)]
 pub struct SetupService {
     cache: Arc<RwLock<HashMap<String, String>>>,
-}
-
-impl Default for SetupService {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 impl SetupService {
@@ -153,3 +150,56 @@ impl SetupService {
         tauri::async_runtime::block_on(self.init_setup_async(defaults))
     }
 }
+
+macro_rules! gen_get_setup_function {
+    ($fn_name:ident; $type:ty; $key:expr; $default:expr) => {
+        #[allow(dead_code)]
+        pub fn $fn_name() -> $type {
+            match SETUP_SERVICE.get_setup($key).unwrap() {
+                Some(value) => {
+                    let result: $type = serde_json::from_value(value).unwrap();
+                    result
+                }
+                None => $default,
+            }
+        }
+
+        paste::paste! {
+            #[allow(dead_code)]
+            pub async fn [<$fn_name _async>]() -> $type {
+                match SETUP_SERVICE.get_setup_async($key).await.unwrap() {
+                    Some(value) => {
+                        let result: $type = serde_json::from_value(value).unwrap();
+                        result
+                    }
+                    None => $default,
+                }
+            }
+        }
+    };
+}
+
+macro_rules! gen_set_setup_function {
+    ($fn_name:ident; $type:ty; $key:expr) => {
+        #[allow(dead_code)]
+        pub fn $fn_name(value: $type) -> Result<(), AppError> {
+            let value = serde_json::to_value(value).unwrap();
+            SETUP_SERVICE.set_setup($key, &value)
+        }
+
+        paste::paste! {
+            #[allow(dead_code)]
+            pub async fn [<$fn_name _async>](value: $type) -> Result<(), AppError> {
+                let value = serde_json::to_value(value).unwrap();
+                SETUP_SERVICE.set_setup_async($key, &value).await
+            }
+        }
+    };
+}
+
+// 设置默认打开窗口的快捷键
+gen_get_setup_function!(get_default_open_window_shortcut; Option<String>; "default_open_window_shortcut"; Some("alt+g".to_string()));
+gen_set_setup_function!(set_default_open_window_shortcut; Option<String>; "default_open_window_shortcut");
+// 设置默认打开窗口的方式(default\last)
+gen_get_setup_function!(get_default_open_window_method; Option<String>; "default_open_window_method"; Some("last".to_string()));
+gen_set_setup_function!(set_default_open_window_method; Option<String>; "default_open_window_method");

@@ -19,8 +19,10 @@ pub async fn open_setting_window<R: Runtime>(app_handle: AppHandle<R>) -> Result
 
 // 加载窗口配置
 #[tauri::command]
-pub async fn cmd_load_configure_windows() -> Result<(), String> {
-    match operations::load_window_configs_from_db().await {
+pub async fn cmd_load_configure_windows<R: Runtime>(
+    app_handle: AppHandle<R>,
+) -> Result<(), String> {
+    match operations::load_window_configs_from_db(&app_handle).await {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string()),
     }

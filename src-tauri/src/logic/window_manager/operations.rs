@@ -16,11 +16,12 @@ use crate::logic::service::window_manager_service::WindowManagerService;
 use crate::logic::tools::proxy;
 
 /// 加载数据库中的窗口配置
-pub async fn load_window_configs_from_db() -> Result<(), Error> {
+pub async fn load_window_configs_from_db<R: Runtime>(app: &AppHandle<R>) -> Result<(), Error> {
     match WindowManagerService::load_window_configs().await {
         Ok(configs) => {
             info!("从数据库加载了 {} 个窗口配置", configs.len());
-            WindowManager::set_window_configs(configs);
+            info!("设置窗口配置: {:?}", configs);
+            WindowManager::set_window_configs(app, configs);
             Ok(())
         }
         Err(e) => {
