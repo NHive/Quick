@@ -13,6 +13,7 @@ pub struct ProxyInfo {
     pub password: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+    pub title: Option<String>,
 }
 
 /// 创建代理的请求
@@ -23,6 +24,7 @@ pub struct CreateProxyRequest {
     pub port: i32,
     pub username: Option<String>,
     pub password: Option<String>,
+    pub title: Option<String>,
 }
 
 /// 更新代理的请求

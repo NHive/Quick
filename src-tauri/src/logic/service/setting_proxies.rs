@@ -16,12 +16,14 @@ impl ProxyInfoService {
         port: i32,
         username: Option<String>,
         password: Option<String>,
+        title: Option<String>,
     ) -> Result<ProxyInfo, AppError> {
         let db = DB::get_connection().await?;
 
         // 创建代理
         let proxy =
-            curd_proxies::Insert::create(&db, proxy_type, host, port, username, password).await?;
+            curd_proxies::Insert::create(&db, proxy_type, host, port, username, password, title)
+                .await?;
 
         // 转换为返回类型
         Ok(ProxyInfo {
@@ -33,6 +35,7 @@ impl ProxyInfoService {
             password: proxy.password,
             created_at: proxy.created_at,
             updated_at: proxy.updated_at,
+            title: Some(proxy.title),
         })
     }
 
@@ -44,6 +47,7 @@ impl ProxyInfoService {
             request.port,
             request.username,
             request.password,
+            request.title,
         )
         .await
     }
@@ -74,6 +78,7 @@ impl ProxyInfoService {
             password: proxy.password,
             created_at: proxy.created_at,
             updated_at: proxy.updated_at,
+            title: Some(proxy.title),
         })
     }
 
@@ -104,6 +109,7 @@ impl ProxyInfoService {
                 password: proxy.password,
                 created_at: proxy.created_at,
                 updated_at: proxy.updated_at,
+                title: Some(proxy.title),
             })
             .collect();
 
@@ -124,6 +130,7 @@ impl ProxyInfoService {
             password: proxy.password,
             created_at: proxy.created_at,
             updated_at: proxy.updated_at,
+            title: Some(proxy.title),
         })
     }
 }

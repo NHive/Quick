@@ -143,13 +143,16 @@ pub async fn cmd_create_proxy(
     port: i32,
     username: Option<String>,
     password: Option<String>,
+    title: Option<String>,
 ) -> Result<i32, String> {
     let pool = match DB::get_connection().await {
         Ok(pool) => pool,
         Err(e) => return Err(e.to_string()),
     };
 
-    match curd_proxies::Insert::create(&pool, proxy_type, host, port, username, password).await {
+    match curd_proxies::Insert::create(&pool, proxy_type, host, port, username, password, title)
+        .await
+    {
         Ok(proxy) => Ok(proxy.id),
         Err(e) => Err(e.to_string()),
     }

@@ -81,6 +81,7 @@ impl Insert {
         port: i32,
         username: Option<String>,
         password: Option<String>,
+        title: Option<String>, // 新增title参数，可选
     ) -> Result<Model, AppError> {
         // 验证输入
         if proxy_type.is_empty() {
@@ -95,12 +96,17 @@ impl Insert {
 
         let now = Utc::now().to_rfc3339();
 
+        // 如果没有提供title，则使用host:port作为默认值
+        let default_title = format!("{}:{}", host, port);
+        let title = title.unwrap_or(default_title);
+
         let proxy = ActiveModel {
             r#type: Set(proxy_type),
-            host: Set(host),
+            host: Set(host.clone()),
             port: Set(port),
             username: Set(username),
             password: Set(password),
+            title: Set(title), // 设置title字段
             created_at: Set(now.clone()),
             updated_at: Set(now),
             ..Default::default()
