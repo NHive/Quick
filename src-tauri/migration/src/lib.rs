@@ -3,6 +3,7 @@ pub use sea_orm_migration::prelude::*;
 
 mod m20220101_000001_create_table;
 mod m20250307_104412_window_proxy_manager;
+mod m20250325_034426_default_window;
 
 pub struct Migrator;
 
@@ -12,6 +13,7 @@ impl MigratorTrait for Migrator {
         vec![
             Box::new(m20220101_000001_create_table::Migration),
             Box::new(m20250307_104412_window_proxy_manager::Migration),
+            Box::new(m20250325_034426_default_window::Migration),
         ]
     }
 }

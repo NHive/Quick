@@ -1,3 +1,4 @@
+// file_path: src/communication/command/setting.rs
 use crate::infrastructure::data_access::{curd_proxies, curd_windows};
 use crate::infrastructure::db::DB;
 

@@ -17,6 +17,7 @@ pub struct Model {
     pub shortcut: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+    pub is_default: bool,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
