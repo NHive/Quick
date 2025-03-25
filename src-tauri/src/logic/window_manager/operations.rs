@@ -122,7 +122,7 @@ pub async fn get_or_create_window<R: Runtime>(
         .visible(false)
         .skip_taskbar(true)
         .decorations(false)
-        .always_on_top(true);
+        .always_on_top(false);
 
     // 如果有代理，设置代理
     if let Some(proxy_url) = proxy_url {
