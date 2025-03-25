@@ -16,6 +16,7 @@ impl WindowInfoService {
         icon: Option<String>,
         proxy_id: Option<i32>,
         shortcut: Option<String>,
+        is_default: Option<bool>,
     ) -> Result<WindowInfo, AppError> {
         let db = DB::get_connection().await?;
 
@@ -35,9 +36,10 @@ impl WindowInfoService {
         let sort_order = max_sort_order + 1;
 
         // 创建窗口
-        let window =
-            curd_windows::Insert::create(&db, title, url, icon, sort_order, proxy_id, shortcut)
-                .await?;
+        let window = curd_windows::Insert::create(
+            &db, title, url, icon, sort_order, proxy_id, shortcut, is_default,
+        )
+        .await?;
 
         // 转换为返回类型
         Ok(WindowInfo {
@@ -48,6 +50,7 @@ impl WindowInfoService {
             sort_order: window.sort_order,
             proxy_id: window.proxy_id,
             shortcut: window.shortcut,
+            is_default: window.is_default,
             created_at: window.created_at,
             updated_at: window.updated_at,
         })
@@ -61,6 +64,7 @@ impl WindowInfoService {
             request.icon,
             request.proxy_id,
             request.shortcut,
+            request.is_default,
         )
         .await
     }
@@ -89,6 +93,7 @@ impl WindowInfoService {
             request.sort_order,
             request.proxy_id,
             request.shortcut,
+            request.is_default,
         )
         .await?;
 
@@ -101,6 +106,7 @@ impl WindowInfoService {
             sort_order: window.sort_order,
             proxy_id: window.proxy_id,
             shortcut: window.shortcut,
+            is_default: window.is_default,
             created_at: window.created_at,
             updated_at: window.updated_at,
         })
@@ -127,11 +133,12 @@ impl WindowInfoService {
                 sort_order: window.sort_order,
                 proxy_id: window.proxy_id,
                 shortcut: window.shortcut,
+                is_default: window.is_default,
                 created_at: window.created_at,
                 updated_at: window.updated_at,
             })
             .collect::<Vec<WindowInfo>>();
-            
+
         // 按照sort_order排序
         window_infos.sort_by(|a, b| a.sort_order.cmp(&b.sort_order));
 
@@ -151,6 +158,7 @@ impl WindowInfoService {
             sort_order: window.sort_order,
             proxy_id: window.proxy_id,
             shortcut: window.shortcut,
+            is_default: window.is_default,
             created_at: window.created_at,
             updated_at: window.updated_at,
         })

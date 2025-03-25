@@ -1,7 +1,8 @@
 // file_path: src/infrastructure/data_access/curd_windows.rs
 use chrono::Utc;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, ModelTrait, QueryFilter, Set,
+    sea_query::Expr, ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, ModelTrait,
+    QueryFilter, Set,
 };
 
 use crate::infrastructure::entity::windows::{ActiveModel, Column, Entity, Model};
@@ -61,6 +62,7 @@ impl Insert {
         sort_order: i32,
         proxy_id: Option<i32>,
         shortcut: Option<String>,
+        is_default: Option<bool>,
     ) -> Result<Model, AppError> {
         // 验证输入
         if title.is_empty() {
@@ -68,6 +70,11 @@ impl Insert {
         }
         if url.is_empty() {
             return Err(AppError::new_validation_error("窗口URL不能为空"));
+        }
+
+        // 如果设置为默认窗口，先取消其他窗口的默认状态
+        if is_default.unwrap_or(false) {
+            Self::reset_other_default_windows(db, None).await?;
         }
 
         let now = Utc::now().to_rfc3339();
@@ -79,6 +86,7 @@ impl Insert {
             sort_order: Set(sort_order),
             proxy_id: Set(proxy_id),
             shortcut: Set(shortcut),
+            is_default: Set(is_default.unwrap_or(false)),
             created_at: Set(now.clone()),
             updated_at: Set(now),
             ..Default::default()
@@ -86,6 +94,22 @@ impl Insert {
 
         let result = window.insert(db).await?;
         Ok(result)
+    }
+
+    // 重置其他所有窗口的默认状态
+    async fn reset_other_default_windows(
+        db: &DatabaseConnection,
+        exclude_id: Option<i32>,
+    ) -> Result<(), AppError> {
+        let mut query = Entity::update_many().col_expr(Column::IsDefault, Expr::value(false));
+
+        if let Some(id) = exclude_id {
+            query = query.filter(Column::Id.ne(id));
+        }
+
+        query.filter(Column::IsDefault.eq(true)).exec(db).await?;
+
+        Ok(())
     }
 }
 
@@ -100,6 +124,7 @@ impl Update {
         sort_order: Option<i32>,
         proxy_id: Option<Option<i32>>,
         shortcut: Option<Option<String>>,
+        is_default: Option<bool>,
     ) -> Result<Model, AppError> {
         // 验证输入
         if let Some(ref title) = title {
@@ -111,6 +136,11 @@ impl Update {
             if url.is_empty() {
                 return Err(AppError::new_validation_error("窗口URL不能为空"));
             }
+        }
+
+        // 如果要设置为默认窗口，先取消其他窗口的默认状态
+        if let Some(true) = is_default {
+            Insert::reset_other_default_windows(db, Some(id)).await?;
         }
 
         let window = Entity::find_by_id(id)
@@ -143,6 +173,10 @@ impl Update {
 
         if let Some(shortcut) = shortcut {
             window.shortcut = Set(shortcut);
+        }
+
+        if let Some(is_default) = is_default {
+            window.is_default = Set(is_default);
         }
 
         window.updated_at = Set(now);

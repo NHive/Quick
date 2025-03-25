@@ -12,6 +12,7 @@ pub struct WindowInfo {
     pub sort_order: i32,
     pub proxy_id: Option<i32>,
     pub shortcut: Option<String>,
+    pub is_default: bool,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -24,6 +25,7 @@ pub struct CreateWindowRequest {
     pub icon: Option<String>,
     pub proxy_id: Option<i32>,
     pub shortcut: Option<String>,
+    pub is_default: Option<bool>,
 }
 
 /// 更新窗口的请求
@@ -36,4 +38,5 @@ pub struct UpdateWindowRequest {
     pub sort_order: Option<i32>,
     pub proxy_id: Option<Option<i32>>,
     pub shortcut: Option<Option<String>>,
+    pub is_default: Option<bool>,
 }

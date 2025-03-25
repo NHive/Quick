@@ -9,6 +9,7 @@ pub async fn cmd_add_window(
     url: String,
     proxy_id: Option<i32>,
     shortcut: Option<String>,
+    is_default: Option<bool>,
 ) -> Result<i32, String> {
     let pool = match DB::get_connection().await {
         Ok(pool) => pool,
@@ -19,7 +20,7 @@ pub async fn cmd_add_window(
     let result = curd_windows::Insert::create(
         &pool, title, url, None, // icon后续自动生成
         0,    // 默认排序顺序
-        proxy_id, shortcut,
+        proxy_id, shortcut, is_default,
     )
     .await;
 
@@ -53,14 +54,17 @@ pub async fn cmd_update_window(
     sort_order: Option<i32>,
     proxy_id: Option<Option<i32>>,
     shortcut: Option<Option<String>>,
+    is_default: Option<bool>,
 ) -> Result<bool, String> {
     let pool = match DB::get_connection().await {
         Ok(pool) => pool,
         Err(e) => return Err(e.to_string()),
     };
 
-    match curd_windows::Update::update(&pool, id, title, url, icon, sort_order, proxy_id, shortcut)
-        .await
+    match curd_windows::Update::update(
+        &pool, id, title, url, icon, sort_order, proxy_id, shortcut, is_default,
+    )
+    .await
     {
         Ok(_) => Ok(true),
         Err(e) => Err(e.to_string()),
@@ -91,7 +95,8 @@ pub async fn cmd_get_setting_window_configs() -> Result<Vec<serde_json::Value>, 
                 "proxy_id": window.proxy_id,
                 "shortcut": window.shortcut,
                 "icon": window.icon,
-                "sort_order": window.sort_order
+                "sort_order": window.sort_order,
+                "is_default": window.is_default
             })
         })
         .collect();
