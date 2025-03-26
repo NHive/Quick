@@ -6,7 +6,7 @@ use crate::logic::window_manager::manager::WindowManager;
 use crate::logic::window_manager::models;
 use crate::logic::window_manager::operations;
 
-use crate::window::{control, setting};
+use crate::window::{quick, setting};
 
 // 打开设置窗口
 #[tauri::command]
@@ -61,7 +61,7 @@ pub async fn cmd_get_previous_window() -> Option<models::WindowInfo> {
 // 显示上一个活动窗口
 #[tauri::command]
 pub async fn cmd_show_previous_window<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
-    match operations::show_previous_window(&app_handle).await {
+    match operations::show_quick_window(&app_handle).await {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string()),
     }
@@ -79,7 +79,7 @@ pub async fn cmd_clear_cache<R: Runtime>(app_handle: AppHandle<R>) -> Result<(),
 // 隐藏控制窗口
 #[tauri::command]
 pub async fn cmd_hide_control_window<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
-    match control::hide_control_window(&app_handle).await {
+    match quick::hide_control_window(&app_handle).await {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string()),
     }

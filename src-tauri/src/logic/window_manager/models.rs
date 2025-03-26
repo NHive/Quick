@@ -35,6 +35,8 @@ pub struct WindowInfo {
     pub shortcut: Option<String>,
     /// 关联的代理ID
     pub proxy_id: Option<i32>,
+    /// 是否默认窗口
+    pub is_default: bool,
 }
 
 /// 窗口配置结构体
@@ -50,6 +52,8 @@ pub struct WindowConfig {
     pub shortcut: Option<String>,
     /// 关联的代理ID
     pub proxy_id: Option<i32>,
+    /// 是否默认窗口
+    pub is_default: bool,
 }
 
 /// 窗口位置和大小信息

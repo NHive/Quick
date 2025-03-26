@@ -8,7 +8,6 @@ use tauri_plugin_global_shortcut::{
 };
 
 use crate::infrastructure::error::AppError;
-use crate::window::control;
 
 lazy_static! {
     pub static ref SHORTCUT_MANAGER: Arc<RwLock<ShortcutManager>> =

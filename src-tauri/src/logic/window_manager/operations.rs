@@ -1,7 +1,7 @@
 // file_path: src/logic/window_manager/operations.rs
 // 窗口操作的API实现
 
-use log::{debug, info};
+use log::{debug, info, warn};
 use tauri::utils::config::WebviewUrl;
 use tauri::{AppHandle, Error, Manager, Runtime, WebviewWindowBuilder};
 
@@ -12,11 +12,47 @@ use super::focus_state::WindowFocusState;
 use super::manager::WindowManager;
 use super::models::WindowStatus;
 use super::utils::{apply_position_to_window, get_window_position_and_size, set_window_position};
+use crate::infrastructure::setup;
+use crate::logic::events::global_shortcut::SHORTCUT_MANAGER;
 use crate::logic::service::window_manager_service::WindowManagerService;
 use crate::logic::tools::proxy;
 
 /// 加载数据库中的窗口配置
 pub async fn load_window_configs_from_db<R: Runtime>(app: &AppHandle<R>) -> Result<(), Error> {
+    // 注册打开上次窗口的快捷键
+    let shortcut = setup::get_default_open_window_shortcut_async().await.unwrap();
+
+    let app_clone = app.clone();
+    match SHORTCUT_MANAGER
+        .write()
+        .unwrap()
+        .register_shortcut_from_string(
+            "open_quick_window",
+            &shortcut,
+            "打开quick窗口",
+            move |_| {
+                let app_handle_clone = app_clone.clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Err(e) = show_quick_window(&app_handle_clone).await {
+                        log::error!("切换窗口错误: {}", e);
+                    }
+                });
+            },
+        ) {
+        Ok(_) => {
+            debug!(
+                "注册打开快速窗口快捷键: {} => {:?}",
+                "open_quick_window", shortcut
+            );
+        }
+        Err(e) => {
+            warn!(
+                "注册打开快速窗口快捷键失败: {} => {:?}, 错误: {}",
+                "open_quick_window", shortcut, e
+            );
+        }
+    };
+
     match WindowManagerService::load_window_configs().await {
         Ok(configs) => {
             info!("从数据库加载了 {} 个窗口配置", configs.len());
@@ -35,9 +71,19 @@ pub async fn load_window_configs_from_db<R: Runtime>(app: &AppHandle<R>) -> Resu
 }
 
 /// 显示前一个活跃窗口,如果前一个活跃窗口不存在，则显示已注册的第一个窗口
-pub async fn show_previous_window<R: Runtime>(app: &AppHandle<R>) -> Result<(), Error> {
-    // 获取前一个活跃窗口的标签
-    let previous_label = WindowManager::get_previous_active_window().map(|info| info.label);
+pub async fn show_quick_window<R: Runtime>(app: &AppHandle<R>) -> Result<(), Error> {
+    // 获取显示窗口的方式,目前有last/default两种方式
+    // 如果是last,则显示上一个活跃窗口
+    // 如果是default,则显示用户设置的默认窗口
+
+    let method_string = setup::get_default_open_window_method_async().await.unwrap();
+    let open_window_method = method_string.as_str();
+
+    let previous_label = match open_window_method {
+        "last" => WindowManager::get_previous_active_window().map(|info| info.label),
+        "default" => WindowManager::get_default_window().map(|info| info.label),
+        _ => None,
+    };
 
     // 如果前一个活跃窗口不存在，则获取第一个非控制窗口
     let window_label = if previous_label.is_none() {

@@ -7,8 +7,8 @@ use tauri::Manager;
 
 use crate::logic::window_manager::manager::WindowManager;
 use crate::logic::window_manager::operations::{
-    clear_window_cache, close_window, hide_window, load_window_configs_from_db,
-    show_previous_window, switch_to_window,
+    clear_window_cache, close_window, hide_window, load_window_configs_from_db, show_quick_window,
+    switch_to_window,
 };
 
 // 添加日志相关的导入
@@ -61,7 +61,7 @@ async fn show_previous(app_state: web::Data<AppState>) -> impl Responder {
         }
     };
 
-    match show_previous_window(&app_handle).await {
+    match show_quick_window(&app_handle).await {
         Ok(_) => HttpResponse::Ok().json(json!({"success": true})),
         Err(e) => HttpResponse::InternalServerError().json(json!({"error": e.to_string()})),
     }

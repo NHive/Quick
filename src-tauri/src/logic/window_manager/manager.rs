@@ -7,8 +7,9 @@ use std::time::{Duration, Instant};
 use tauri::{AppHandle, Runtime};
 
 use super::models::*;
-use super::operations::switch_to_window;
+use super::operations::{show_quick_window, switch_to_window};
 use super::utils;
+use crate::infrastructure::setup;
 use crate::logic::events::global_shortcut::SHORTCUT_MANAGER;
 
 // 位置比较的误差容忍度
@@ -153,9 +154,26 @@ impl WindowManager {
         windows_store.windows.get(&label).cloned()
     }
 
+    /// 获取默认窗口的信息
+    pub fn get_default_window() -> Option<WindowInfo> {
+        let windows_store = WINDOWS.lock();
+
+        // 查找标记为默认的窗口
+        for window in windows_store.windows.values() {
+            if window.is_default {
+                return Some(window.clone());
+            }
+        }
+
+        // 如果没有找到默认窗口，返回None
+        None
+    }
+
     /// 设置窗口配置列表
     /// 将配置转换为WindowInfo并保存到windows哈希表中
     pub fn set_window_configs<R: Runtime>(app: &AppHandle<R>, configs: Vec<WindowConfig>) {
+        // TODO: 暂时将快捷键注册放在这里
+
         let mut windows_store = WINDOWS.lock();
         let mut active_state = ACTIVE.lock();
 
@@ -208,6 +226,7 @@ impl WindowManager {
                     icon: config.icon.clone(),
                     shortcut: config.shortcut.clone(),
                     proxy_id: config.proxy_id,
+                    is_default: config.is_default,
                 }
             } else {
                 // 创建新的WindowInfo
@@ -221,6 +240,7 @@ impl WindowManager {
                     icon: config.icon.clone(),
                     shortcut: config.shortcut.clone(),
                     proxy_id: config.proxy_id,
+                    is_default: config.is_default,
                 }
             };
 

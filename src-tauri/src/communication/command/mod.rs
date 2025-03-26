@@ -11,7 +11,6 @@ use setup::*;
 use window::*;
 use window_setup::*;
 
-
 pub fn register_commands<R: tauri::Runtime>() -> impl Fn(tauri::Builder<R>) -> tauri::Builder<R> {
     move |app_builder| {
         app_builder.invoke_handler(generate_handler![
@@ -37,6 +36,8 @@ pub fn register_commands<R: tauri::Runtime>() -> impl Fn(tauri::Builder<R>) -> t
             cmd_update_proxy,
             cmd_get_setting_proxy_configs,
             cmd_get_setting_window_configs,
+            cmd_set_default_open_window,
+            cmd_get_default_open_window,
         ])
     }
 }

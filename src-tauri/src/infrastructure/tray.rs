@@ -5,7 +5,7 @@ use tauri::{
     AppHandle, Error,
 };
 
-use crate::window::control;
+use crate::window::quick;
 
 // 托盘菜单
 pub fn menu(app: &AppHandle) -> Result<TrayIcon, Error> {
@@ -32,7 +32,7 @@ pub fn menu(app: &AppHandle) -> Result<TrayIcon, Error> {
             } = event
             {
                 if let (MouseButton::Left, MouseButtonState::Up) = (button, button_state) {
-                    let _ = tauri::async_runtime::block_on(control::show_control_window::<tauri::Wry>(
+                    let _ = tauri::async_runtime::block_on(quick::show_control_window::<tauri::Wry>(
                         tray.app_handle(),
                     ));
                 }

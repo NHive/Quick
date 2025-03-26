@@ -20,6 +20,7 @@ impl WindowManagerService {
                 icon: window.icon,
                 shortcut: window.shortcut,
                 proxy_id: window.proxy_id,
+                is_default: window.is_default,
             })
             .collect();
 
@@ -38,6 +39,7 @@ impl WindowManagerService {
             icon: window.icon,
             shortcut: window.shortcut,
             proxy_id: window.proxy_id,
+            is_default: window.is_default,
         };
 
         Ok(config)

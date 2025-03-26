@@ -1,7 +1,12 @@
-// file_path: src/communication/command/setting.rs
+use log::{debug, warn};
+use serde::{Deserialize, Serialize};
+use tauri::{AppHandle, Runtime};
+
 use crate::infrastructure::data_access::{curd_proxies, curd_windows};
 use crate::infrastructure::db::DB;
-use serde::{Deserialize, Serialize};
+use crate::infrastructure::setup;
+use crate::logic::events::global_shortcut::SHORTCUT_MANAGER;
+use crate::logic::window_manager::operations::show_quick_window;
 
 // 添加窗口配置
 #[tauri::command]
@@ -196,11 +201,59 @@ pub async fn cmd_update_proxy(
 }
 
 // 设置默认打开快捷键,以及打开方式
-pub async fn cmd_set_default_open_window(
+#[tauri::command]
+pub async fn cmd_set_default_open_window<R: Runtime>(
+    app_handle: AppHandle<R>,
     shortcut: &str,
     open_default: bool,
 ) -> Result<bool, String> {
-    todo!()
+    // 设置快捷键
+    match setup::set_default_open_window_shortcut_async(Some(shortcut.to_string())).await {
+        Ok(_) => {}
+        Err(e) => return Err(e.to_string()),
+    }
+
+    // 设置打开方式
+    let method_result = if open_default {
+        setup::set_default_open_window_method_async(Some("default".to_string())).await
+    } else {
+        setup::set_default_open_window_method_async(Some("last".to_string())).await
+    };
+
+    match SHORTCUT_MANAGER
+        .write()
+        .unwrap()
+        .register_shortcut_from_string(
+            "open_quick_window",
+            &shortcut,
+            "打开quick窗口",
+            move |_| {
+                let app_handle_clone = app_handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Err(e) = show_quick_window(&app_handle_clone).await {
+                        log::error!("切换窗口错误: {}", e);
+                    }
+                });
+            },
+        ) {
+        Ok(_) => {
+            debug!(
+                "注册打开快速窗口快捷键: {} => {:?}",
+                "open_quick_window", shortcut
+            );
+        }
+        Err(e) => {
+            warn!(
+                "注册打开快速窗口快捷键失败: {} => {:?}, 错误: {}",
+                "open_quick_window", shortcut, e
+            );
+        }
+    };
+
+    match method_result {
+        Ok(_) => Ok(true),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -210,6 +263,28 @@ pub struct DefaultOpenWindow {
 }
 
 // 获取默认打开快捷键,以及打开方式
+#[tauri::command]
 pub async fn cmd_get_default_open_window() -> Result<DefaultOpenWindow, String> {
-    todo!()
+    let shortcut = setup::get_default_open_window_shortcut_async().await;
+
+    let method = setup::get_default_open_window_method_async().await;
+
+    // 设置默认快捷键为"alt+g"
+    let shortcut_value = if shortcut.is_none() || shortcut.as_ref().unwrap().is_empty() {
+        "alt+g".to_string()
+    } else {
+        shortcut.unwrap()
+    };
+
+    // 判断打开方式，如果是default或者None(第一次使用)则默认为true
+    let open_default = match method.as_deref() {
+        Some("default") => true,
+        Some("last") => false,
+        _ => true, // 默认值为true
+    };
+
+    Ok(DefaultOpenWindow {
+        shortcut: shortcut_value,
+        open_default,
+    })
 }
